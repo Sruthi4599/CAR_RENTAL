@@ -63,7 +63,10 @@ export const createBooking=async(req,res)=>{
 export const getUserBookings=async(req,res)=>{
     try {
         const {_id}=req.user;
-        const bookings=(await Booking.find({user:_id}).populate("car")).toSorted({createdAt:-1})
+        const bookings = await Booking.find({ user: _id })
+  .populate("car")
+  .sort({ createdAt: -1 });  // let MongoDB sort it
+
         res.json({success:true,bookings})
     } catch (error) {
         console.log(error.message);
@@ -72,35 +75,50 @@ export const getUserBookings=async(req,res)=>{
 }
 
 //API to get Owner Bookings
-export const getOwnerBookings=async(req,res)=>{
-    try {
-        if(req.user.role!=='owner'){
-            res.json({success:false,message:"Unauthorized"})
-        }
-        const bookings=(await Booking.find({owner:req.user._id}).populate('car user').select("-user.password")).sort({createdAt:-1})
-         res.json({success:true,bookings})
-    } catch (error) {
-        console.log(error.message);
-        res.json({success:false,message:error.message})
+export const getOwnerBookings = async (req, res) => {
+  try {
+    // ensure auth middleware set req.user
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     }
-}
 
+    const ownerId = req.user._id;
+
+    // find ALL bookings whose owner is this owner
+    // populate the car so frontend can read booking.car.image, brand, model
+    const bookings = await Booking.find({ owner: ownerId })
+      .populate("car")
+      .sort({ createdAt: -1 }); // optional: newest first
+
+    // Ensure we always send an array (even empty)
+    return res.json({ success: true, bookings: Array.isArray(bookings) ? bookings : [] });
+  } catch (error) {
+    console.error("getOwnerBookings error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 //API TO CHANGE BOOKING STATUS
-export const changeBookingStatus=async(req,res)=>{
-    try {
-        const {_id}=req.user;
-        const {bookingId,status}=req.body;
+// Change booking status
+export const changeBookingStatus = async (req, res) => {
+  try {
+    const { bookingId, status } = req.body;
 
-        const booking=await Booking.findById(bookingId)
-        if(booking.owner.toString()!==_id.toString()){
-            return res.json({success:false,message:"Unauthorized"})
-        }
-        bookings.status=status;
-        await booking.save();
-        res.json({success:true,message:"Status Updated"})
-    } catch (error) {
-        console.log(error.message);
-        res.json({success:false,message:error.message})
+    if (!bookingId || !status) {
+      return res.status(400).json({ success: false, message: "Booking ID and status are required." });
     }
-}
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found." });
+    }
+
+    booking.status = status;
+    await booking.save();
+
+    res.status(200).json({ success: true, message: `Booking status updated to ${status}`, booking });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};

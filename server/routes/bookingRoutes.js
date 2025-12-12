@@ -9,4 +9,3 @@ bookingRouter.post('/owner',protect,getOwnerBookings)
 bookingRouter.post('/change-status',protect,changeBookingStatus)
 
 export default bookingRouter;
-
