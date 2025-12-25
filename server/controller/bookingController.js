@@ -2,6 +2,7 @@ import Booking from "../models/Booking.js";
 import Car from "../models/Car.js";
 import User from "../models/User.js";
 import PDFDocument from "pdfkit";
+import { calculateDynamicPrice } from "../utils/pricingEngine.js";
 
 /**
  * Returns true if no bookings overlap the given pickup/return dates for the car.
@@ -9,9 +10,9 @@ import PDFDocument from "pdfkit";
 const checkAvailability = async (car, pickupDate, returnDate) => {
   const bookings = await Booking.find({
     car,
-    status: { $ne: "cancelled" }, // ✅ ignore cancelled bookings
+    status: { $ne: "cancelled" },
     pickupDate: { $lte: returnDate },
-    returnDate: { $gte: pickupDate },
+    returnDate: { $gte: pickupDate }
   });
   return bookings.length === 0;
 };
@@ -24,40 +25,52 @@ export const checkAvailabilityOfCar = async (req, res) => {
     const cars = await Car.find({ location, isAvailable: true });
 
     const availableCarsPromises = cars.map(async (car) => {
-      const isAvailable = await checkAvailability(car._id, pickupDate, returnDate);
+      const isAvailable = await checkAvailability(
+        car._id,
+        pickupDate,
+        returnDate
+      );
       return { ...car._doc, isAvailable };
     });
 
     let availableCars = await Promise.all(availableCarsPromises);
-    availableCars = availableCars.filter((car) => car.isAvailable === true);
+    availableCars = availableCars.filter((car) => car.isAvailable);
 
     res.json({ success: true, availableCars });
   } catch (error) {
-    console.error("checkAvailabilityOfCar error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ======================= CREATE BOOKING =======================
+// ======================= CREATE BOOKING (DYNAMIC PRICING) =======================
 export const createBooking = async (req, res) => {
   try {
     const { _id } = req.user;
     const { car, pickupDate, returnDate } = req.body;
 
+    // check availability
     const isAvailable = await checkAvailability(car, pickupDate, returnDate);
     if (!isAvailable) {
-      return res.status(400).json({ success: false, message: "Car is not available" });
+      return res.status(400).json({
+        success: false,
+        message: "Car is not available for selected dates"
+      });
     }
 
     const carData = await Car.findById(car);
     if (!carData) {
-      return res.status(404).json({ success: false, message: "Car not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Car not found"
+      });
     }
 
-    const picked = new Date(pickupDate);
-    const returned = new Date(returnDate);
-    const noOfDays = Math.ceil((returned - picked) / (1000 * 60 * 60 * 24));
-    const price = (carData.pricePerDay || 0) * Math.max(1, noOfDays);
+    // ✅ DYNAMIC PRICING CALCULATION
+    const pricing = await calculateDynamicPrice(
+      carData,
+      pickupDate,
+      returnDate
+    );
 
     const booking = await Booking.create({
       car,
@@ -65,14 +78,19 @@ export const createBooking = async (req, res) => {
       user: _id,
       pickupDate,
       returnDate,
-      price,
-      status: "confirmed",
+      price: pricing.totalPrice,
+      status: "confirmed"
     });
 
     // mark car unavailable
     await Car.findByIdAndUpdate(car, { isAvailable: false });
 
-    res.json({ success: true, message: "Booking created", booking });
+    res.json({
+      success: true,
+      message: "Booking created with dynamic pricing",
+      booking,
+      priceBreakdown: pricing
+    });
   } catch (error) {
     console.error("createBooking error:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -90,7 +108,6 @@ export const getUserBookings = async (req, res) => {
 
     res.json({ success: true, bookings });
   } catch (error) {
-    console.error("getUserBookings error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -106,61 +123,73 @@ export const getOwnerBookings = async (req, res) => {
 
     res.json({ success: true, bookings });
   } catch (error) {
-    console.error("getOwnerBookings error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ======================= CHANGE STATUS (OWNER / ADMIN) =======================
+// ======================= CHANGE BOOKING STATUS =======================
 export const changeBookingStatus = async (req, res) => {
   try {
     const { bookingId, status } = req.body;
 
     const booking = await Booking.findById(bookingId);
     if (!booking) {
-      return res.status(404).json({ success: false, message: "Booking not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found"
+      });
     }
 
     booking.status = status;
     await booking.save();
 
-    res.json({ success: true, message: "Booking status updated", booking });
+    res.json({
+      success: true,
+      message: "Booking status updated",
+      booking
+    });
   } catch (error) {
-    console.error("changeBookingStatus error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ======================= CANCEL BOOKING (USER) =======================
+// ======================= CANCEL BOOKING =======================
 export const cancelBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
 
     const booking = await Booking.findById(bookingId);
     if (!booking) {
-      return res.status(404).json({ success: false, message: "Booking not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found"
+      });
     }
 
     if (booking.status === "cancelled") {
-      return res.json({ success: false, message: "Booking already cancelled" });
+      return res.json({
+        success: false,
+        message: "Booking already cancelled"
+      });
     }
 
     booking.status = "cancelled";
     await booking.save();
 
-    // make car available again
     await Car.findByIdAndUpdate(booking.car, {
       isAvailable: true
     });
 
-    res.json({ success: true, message: "Booking cancelled successfully" });
+    res.json({
+      success: true,
+      message: "Booking cancelled successfully"
+    });
   } catch (error) {
-    console.error("cancelBooking error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ======================= GENERATE PDF =======================
+// ======================= GENERATE BOOKING PDF =======================
 export const generateBookingPDF = async (req, res) => {
   try {
     const bookingId = req.params.id;
@@ -170,7 +199,10 @@ export const generateBookingPDF = async (req, res) => {
       .populate("user");
 
     if (!booking) {
-      return res.status(404).json({ success: false, message: "Booking not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found"
+      });
     }
 
     const doc = new PDFDocument({ margin: 50 });
@@ -205,14 +237,16 @@ export const generateBookingPDF = async (req, res) => {
       ).toDateString()}`
     );
     doc.text(`Status: ${booking.status}`);
-    doc.text(`Total Price: $${booking.price}`);
+    doc.text(`Total Price: ${booking.price}`);
     doc.moveDown(2);
 
     doc.text("Thank you for choosing CarRental!", { align: "center" });
 
     doc.end();
   } catch (error) {
-    console.error("generateBookingPDF error:", error);
-    res.status(500).json({ success: false, message: "PDF generation failed" });
+    res.status(500).json({
+      success: false,
+      message: "PDF generation failed"
+    });
   }
 };
