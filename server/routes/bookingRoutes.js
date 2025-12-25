@@ -5,19 +5,32 @@ import {
   createBooking,
   getOwnerBookings,
   getUserBookings,
-  generateBookingPDF, // <- required import
+  generateBookingPDF,
+  cancelBooking, // ✅ NEW IMPORT
 } from "../controller/bookingController.js";
 import { protect } from "../middleware/auth.js";
 
 const bookingRouter = express.Router();
 
+// Check car availability
 bookingRouter.post("/check-availability", checkAvailabilityOfCar);
+
+// Create booking
 bookingRouter.post("/create", protect, createBooking);
+
+// Get user bookings
 bookingRouter.post("/user", protect, getUserBookings);
+
+// Get owner bookings
 bookingRouter.post("/owner", protect, getOwnerBookings);
+
+// Change booking status (owner/admin)
 bookingRouter.post("/change-status", protect, changeBookingStatus);
 
-// PDF receipt download (streams application/pdf)
+// ✅ Cancel booking (user)
+bookingRouter.post("/cancel/:bookingId", protect, cancelBooking);
+
+// Download booking receipt (PDF)
 bookingRouter.get("/:id/receipt", protect, generateBookingPDF);
 
 export default bookingRouter;

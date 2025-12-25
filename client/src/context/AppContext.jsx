@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useContext } from "react";
 import axios from "axios";
-import { toast } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
 axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
@@ -19,75 +19,65 @@ export const AppProvider = ({ children }) => {
   const [returnDate, setReturnDate] = useState("");
   const [cars, setCars] = useState([]);
 
-  // FUNCTION TO CHECK IF USER LOGGED IN
+  // 🔐 Fetch logged-in user
   const fetchUser = async () => {
     try {
       const { data } = await axios.get("/api/users/data");
-      if (data?.success) {
+      if (data.success) {
         setUser(data.user);
-        setIsOwner(data.user?.role === "owner");
+        setIsOwner(data.user.role === "owner");
       } else {
-        // if user not authorized/invalid token, navigate to home/login
         setUser(null);
         setIsOwner(false);
         navigate("/");
       }
     } catch (error) {
-      console.error("fetchUser error:", error, error?.response?.data);
-      toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Failed to fetch user data"
-      );
+      setUser(null);
+      setIsOwner(false);
     }
   };
 
-  // Function to fetch all cars from the server
+  // 🚗 Fetch cars (for homepage / featured)
   const fetchCars = async () => {
     try {
       const { data } = await axios.get("/api/users/cars");
-      if (data?.success) {
+      if (data.success) {
         setCars(Array.isArray(data.cars) ? data.cars : []);
-      } else {
-        toast.error(data?.message || "Failed to fetch cars");
       }
     } catch (error) {
-      console.error("fetchCars error:", error, error?.response?.data);
-      toast.error(
-        error?.response?.data?.message || error?.message || "Failed to fetch cars"
-      );
+      toast.error("Failed to fetch cars");
     }
   };
 
-  // function to log out
+  // 🔓 Logout
   const logout = () => {
     localStorage.removeItem("token");
     setToken(null);
     setUser(null);
     setIsOwner(false);
-    // remove default header cleanly
     delete axios.defaults.headers.common["Authorization"];
-    toast.success("You have logged out");
-    navigate("/"); // optional: send user to homepage or login
+    toast.success("Logged out");
+    navigate("/");
   };
 
-  // useEffect to retrieve the token on mount
+  // 🔁 Read token from localStorage on first load
   useEffect(() => {
     const tokenFromStorage = localStorage.getItem("token");
     if (tokenFromStorage) {
       setToken(tokenFromStorage);
-      // FIX: use template literal (backticks) so token is interpolated
-      axios.defaults.headers.common["Authorization"] = `Bearer ${tokenFromStorage}`;
+    }
+  }, []);
 
-      // Now we can safely fetch user & cars
+  // 🔥 MOST IMPORTANT FIX: Sync axios with token
+  useEffect(() => {
+    if (token) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       fetchUser();
       fetchCars();
     } else {
-      // ensure header is not set if there's no token
       delete axios.defaults.headers.common["Authorization"];
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // run once on mount
+  }, [token]);
 
   const value = {
     navigate,
@@ -112,9 +102,11 @@ export const AppProvider = ({ children }) => {
     setReturnDate,
   };
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+    </AppContext.Provider>
+  );
 };
 
-export const useAppContext = () => {
-  return useContext(AppContext);
-};
+export const useAppContext = () => useContext(AppContext);

@@ -1,86 +1,56 @@
 import React, { useEffect, useState } from 'react'
-import Title from '../components/Title'
-import { assets, dummyCarData } from '../assets/assets'
 import CarCard from '../components/CarCard'
-import { useSearchParams } from 'react-router-dom'
 import { useAppContext } from '../context/AppContext'
-import {motion} from 'motion/react'
+import toast from 'react-hot-toast'
 
 const Cars = () => {
+  const { axios } = useAppContext()
+  const [cars, setCars] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const [searchParams] = useSearchParams()
-  const pickupLocation = searchParams.get('pickupLocation')
-  const pickupDate = searchParams.get('pickupDate')
-  const returnDate = searchParams.get('returnDate')
+  const fetchAllCars = async () => {
+    try {
+      const { data } = await axios.get('/api/users/cars')
 
-  const {cars, axios} = useAppContext()
-
-
-  const [input, setInput] = useState('')
-
-  const isSearchData = pickupLocation && pickupDate && returnDate
-  const [filteredCars , setFilteredCars] = useState([])
-
-  const searchCarAvailability = async () =>{
-    const {data} = await axios.post('/api/bookings/check-availability', 
-      {location: pickupLocation, pickupDate, returnDate})
-      if(data.success){
-        setFilteredCars(data.availableCars)
-        if(data.availableCars.length === 0){
-          toast('No cars available')
-        }
-        return null
+      if (data.success) {
+        // show only available cars
+        const availableCars = data.cars.filter(
+          (car) => car.isAvailable === true
+        )
+        setCars(availableCars)
+      } else {
+        toast.error(data.message || 'Failed to load cars')
       }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  useEffect(()=>{
-    isSearchData && searchCarAvailability()
+  useEffect(() => {
+    fetchAllCars()
   }, [])
 
   return (
-    <div>
-      <motion.div 
-      initial={{opacity:0,y:30}}
-      animate={{opacity:1,y:0}}
-      transition={{duration:0.6,ease:'easeOut'}}
-      className="flex flex-col items-center py-20 bg-light max-md:px-4">
-        <Title 
-          title="Available Cars" 
-          subTitle="Browse our selection of premium vehicles available for your next adventure." 
-        />
+    <div className='px-6 md:px-16 lg:px-24 xl:px-32 py-16'>
+      <h1 className='text-3xl font-semibold text-center mb-12'>
+        Available Cars
+      </h1>
 
-        <motion.div
-        initial={{opacity:0,y:20}}
-        animate={{opacity:1,y:0}}
-        transition={{duration:0.5,delay:0.3}}
-         className='flex items-center bg-white px-4 mt-6 max-w-140 w-full h-12 rounded-full shadow'>
-            <img src={assets.search_icon} alt="" className='w-4.5 h-4.5 mr-2' />  
-            <input onClick={(e)=> setInput(e.target.value)} value={input} type="text" placeholder='Search by make, model, or features'
-             className='w-full h-full outline-none text-gray-500' />
-            <img src={assets.filter_icon} alt="" className='w-4.5 h-4.5 ml-2' />
-
-        </motion.div>
-      </motion.div>
-
-      <motion.div
-      initial={{opacity:0}}
-      animate={{opacity:1}}
-      transition={{duration:0.5,delay:0.6}}
-       className='px-6 md:px-16 lg:px-24 xl:px-32 mt-10'>
-        <p className='text-gray-500 xl:px-20 max-w-7xl mx-auto'>Showing {filteredCars.length} Cars</p>
-
-        <motion.div 
-        initial={{opacity:0,y:20}}
-        animate={{opacity:1,y:0}}
-        
-        className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-4 xl:px-20 max-w-7xl mx-auto'>
-          {filteredCars.map((car,index)=> (
-            <div key={index}>
-              <CarCard car={car}/>
-            </div>
+      {loading ? (
+        <p className='text-center text-gray-500'>Loading cars...</p>
+      ) : cars.length === 0 ? (
+        <p className='text-center text-gray-500'>
+          No cars available at the moment
+        </p>
+      ) : (
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8'>
+          {cars.map((car) => (
+            <CarCard key={car._id} car={car} />
           ))}
-        </motion.div>
-      </motion.div>
+        </div>
+      )}
     </div>
   )
 }
