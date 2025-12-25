@@ -2,6 +2,8 @@ import Booking from "../models/Booking.js";
 import Car from "../models/Car.js";
 import { calculateDynamicPrice } from "../utils/pricingEngine.js";
 import checkAvailability from "../utils/checkAvailability.js";
+import PDFDocument from "pdfkit";
+
 
 /* ===================== CREATE BOOKING ===================== */
 export const createBooking = async (req, res) => {
@@ -21,13 +23,15 @@ export const createBooking = async (req, res) => {
     const pricing = await calculateDynamicPrice(car, pickupDate, returnDate);
 
     const booking = await Booking.create({
-      user: req.user._id,
-      car: carId,
-      pickupDate,
-      returnDate,
-      price: pricing.totalPrice,
-      status: "confirmed",
-    });
+  user: req.user._id,
+  owner: car.owner,   // ✅ ADD THIS LINE
+  car: carId,
+  pickupDate,
+  returnDate,
+  price: pricing.totalPrice,
+  status: "pending",
+});
+
 
     res.json({ success: true, booking });
   } catch (error) {
@@ -139,13 +143,105 @@ export const extendBooking = async (req, res) => {
 
 /* ===================== PDF RECEIPT ===================== */
 export const generateBookingPDF = async (req, res) => {
-  res.status(501).json({ success: false, message: "PDF not implemented" });
+  try {
+    const bookingId = req.params.id;
+
+    const booking = await Booking.findById(bookingId)
+      .populate("car")
+      .populate("user");
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+
+    // ✅ Only booking owner can download
+    if (booking.user._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=booking_${booking._id}.pdf`
+    );
+
+    const doc = new PDFDocument({ margin: 40 });
+    doc.pipe(res);
+
+    doc.fontSize(22).text("Car Rental Receipt", { align: "center" });
+    doc.moveDown();
+
+    doc.fontSize(12);
+    doc.text(`Booking ID: ${booking._id}`);
+    doc.text(`Customer Name: ${booking.user.name}`);
+    doc.text(`Email: ${booking.user.email}`);
+    doc.moveDown();
+
+    doc.text(`Car: ${booking.car.brand} ${booking.car.model}`);
+    doc.text(`Category: ${booking.car.category}`);
+    doc.text(`Location: ${booking.car.location}`);
+    doc.moveDown();
+
+    doc.text(`Pickup Date: ${booking.pickupDate.toISOString().split("T")[0]}`);
+    doc.text(`Return Date: ${booking.returnDate.toISOString().split("T")[0]}`);
+    doc.moveDown();
+
+    doc.fontSize(14).text(`Total Price: ₹${booking.price}`, { underline: true });
+    doc.moveDown(2);
+
+    doc.fontSize(10).text(
+      "Thank you for choosing CarRental.\nDrive safe!",
+      { align: "center" }
+    );
+
+    doc.end();
+  } catch (error) {
+    console.error("PDF ERROR:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
 };
+
 
 /* ===================== CHANGE STATUS ===================== */
 export const changeBookingStatus = async (req, res) => {
-  res.status(501).json({ success: false, message: "Not implemented" });
+  try {
+    const { bookingId, status } = req.body;
+
+    if (!bookingId || !status) {
+      return res.status(400).json({
+        success: false,
+        message: "bookingId and status are required",
+      });
+    }
+
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    booking.status = status;
+    await booking.save();
+
+    res.json({
+      success: true,
+      message: `Booking ${status} successfully`,
+      booking,
+    });
+  } catch (error) {
+    console.error("changeBookingStatus error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
+
 
 /* ===================== CHECK AVAILABILITY ===================== */
 export const checkAvailabilityOfCar = async (req, res) => {

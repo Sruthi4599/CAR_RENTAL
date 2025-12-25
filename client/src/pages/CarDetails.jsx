@@ -4,11 +4,25 @@ import { assets } from '../assets/assets'
 import Loader from '../components/Loader'
 import { useAppContext } from '../context/AppContext'
 import toast from 'react-hot-toast'
+import { DayPicker } from 'react-day-picker'
+import 'react-day-picker/dist/style.css'
+
+/* -------- timezone safe helpers -------- */
+const toYMD = (date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+const fromYMD = (str) => {
+  const [y, m, d] = str.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
 
 const CarDetails = () => {
   const { id } = useParams()
   const {
-    cars,
     axios,
     pickupDate,
     setPickupDate,
@@ -18,46 +32,81 @@ const CarDetails = () => {
 
   const navigate = useNavigate()
   const [car, setCar] = useState(null)
+  const [disabledDates, setDisabledDates] = useState([])
+  const [showPickup, setShowPickup] = useState(false)
+  const [showReturn, setShowReturn] = useState(false)
+
   const currency = import.meta.env.VITE_CURRENCY
 
-  // -------- HANDLE BOOKING ----------
+  /* -------- LOAD CAR -------- */
+  useEffect(() => {
+    const fetchCar = async () => {
+      try {
+        const { data } = await axios.get(`/api/users/cars/${id}`)
+        if (data.success) setCar(data.car)
+        else toast.error('Car not found')
+      } catch {
+        toast.error('Car not found')
+      }
+    }
+    fetchCar()
+  }, [id])
+
+  /* -------- LOAD DISABLED DATES -------- */
+  useEffect(() => {
+    const fetchDisabled = async () => {
+      try {
+        const { data } = await axios.get(
+          `/api/bookings/unavailable-dates/${id}`
+        )
+        if (data.success) {
+          const dates = data.disabledDates.map((d) => {
+            const dt = new Date(d)
+            return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate())
+          })
+          setDisabledDates(dates)
+        }
+      } catch {
+        console.log('Failed to load booked dates')
+      }
+    }
+    fetchDisabled()
+  }, [id])
+
+  /* -------- BOOKING -------- */
   const handleSubmit = async (e) => {
     e.preventDefault()
 
+    if (!pickupDate || !returnDate) {
+      toast.error('Select pickup and return dates')
+      return
+    }
+
     try {
       const { data } = await axios.post('/api/bookings/create', {
-        car: id,
+        carId: id,
         pickupDate,
         returnDate
       })
 
       if (data.success) {
-        toast.success(data.message)
+        toast.success('Booking successful')
         navigate('/my-bookings')
       } else {
-        toast.error(data.message)
+        toast.error(data.message || 'Booking failed')
       }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message)
     }
   }
 
-  // Load car details
-  useEffect(() => {
-    const selectedCar = cars.find((c) => c._id === id)
-    setCar(selectedCar || null)
-  }, [cars, id])
-
-  // -------- CALCULATE ESTIMATED PRICE ----------
+  /* -------- PRICE -------- */
   const calculateEstimatedTotal = () => {
     if (!pickupDate || !returnDate || !car) return null
-
-    const start = new Date(pickupDate)
-    const end = new Date(returnDate)
-
-    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
+    const start = fromYMD(pickupDate)
+    const end = fromYMD(returnDate)
+    const days = Math.ceil((end - start) / 86400000)
     if (days <= 0) return null
-
     return days * car.pricePerDay
   }
 
@@ -65,22 +114,21 @@ const CarDetails = () => {
 
   return car ? (
     <div className='px-6 md:px-16 lg:px-24 xl:px-32 mt-16'>
-      {/* BACK BUTTON */}
+      {/* BACK */}
       <button
         onClick={() => navigate(-1)}
-        className='flex items-center gap-2 mb-6 text-gray-500 cursor-pointer'
+        className='flex items-center gap-2 mb-6 text-gray-500'
       >
-        <img src={assets.arrow_icon} alt='' className='rotate-180 opacity-65' />
+        <img src={assets.arrow_icon} className='rotate-180 opacity-65' />
         Back to all Cars
       </button>
 
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12'>
-        {/* LEFT SECTION */}
+        {/* LEFT */}
         <div className='lg:col-span-2'>
           <img
             src={car.image}
-            alt=''
-            className='w-full h-auto md:max-h-100 object-cover rounded-xl mb-6 shadow-md'
+            className='w-full rounded-xl mb-6 shadow-md'
           />
 
           <div className='space-y-6'>
@@ -106,7 +154,7 @@ const CarDetails = () => {
                   key={text}
                   className='flex flex-col items-center bg-light p-4 rounded-lg'
                 >
-                  <img src={icons} alt='' className='h-5 mb-2' />
+                  <img src={icons} className='h-5 mb-2' />
                   {text}
                 </div>
               ))}
@@ -128,7 +176,7 @@ const CarDetails = () => {
                   'Rear View Mirror'
                 ].map((item) => (
                   <li key={item} className='flex items-center text-gray-500'>
-                    <img src={assets.check_icon} className='h-4 mr-2' alt='' />
+                    <img src={assets.check_icon} className='h-4 mr-2' />
                     {item}
                   </li>
                 ))}
@@ -138,74 +186,89 @@ const CarDetails = () => {
         </div>
 
         {/* BOOKING FORM */}
-        <form
-          onSubmit={handleSubmit}
-          className='shadow-lg h-max sticky top-18 rounded-xl p-6 space-y-6 text-gray-500'
-        >
-          <p className='flex items-center justify-between text-2xl text-gray-800 font-semibold'>
-            {currency}
-            {car.pricePerDay}
-            <span className='text-base text-gray-400 font-normal'>
-              {' '}
-              per day
-            </span>
+        <form className='shadow-lg h-max sticky top-18 rounded-xl p-6 space-y-6'>
+          <p className='text-2xl font-semibold'>
+            {currency}{car.pricePerDay}
+            <span className='text-sm text-gray-400'> / day</span>
           </p>
 
-          {/* Dynamic pricing note */}
-          <p className='text-xs text-gray-500'>
-            *Final price may vary based on demand, weekend & duration
-          </p>
+          <hr />
 
-          <hr className='border-borderColor my-6' />
-
-          {/* PICKUP DATE */}
-          <div className='flex flex-col gap-2'>
-            <label htmlFor='pickup-date'>Pick Date</label>
+          {/* PICKUP */}
+          <div className='relative'>
+            <label>Pick Date</label>
             <input
+              readOnly
               value={pickupDate}
-              onChange={(e) => setPickupDate(e.target.value)}
-              type='date'
-              id='pickup-date'
-              required
-              min={new Date().toISOString().split('T')[0]}
-              className='border border-borderColor px-3 py-2 rounded-lg'
+              onClick={() => {
+                setShowPickup(!showPickup)
+                setShowReturn(false)
+              }}
+              className='border px-3 py-2 rounded-lg w-full cursor-pointer'
             />
+            {showPickup && (
+              <div className='absolute z-30 bg-white border rounded-lg mt-1'>
+                <DayPicker
+                  mode='single'
+                  disabled={[{ before: new Date() }, ...disabledDates]}
+                  onSelect={(date) => {
+                    if (!date) return
+                    setPickupDate(toYMD(date))
+                    setReturnDate('')
+                    setShowPickup(false)
+                  }}
+                />
+              </div>
+            )}
           </div>
 
-          {/* RETURN DATE */}
-          <div className='flex flex-col gap-2'>
-            <label htmlFor='return-date'>Return Date</label>
+          {/* RETURN */}
+          <div className='relative'>
+            <label>Return Date</label>
             <input
+              readOnly
               value={returnDate}
-              onChange={(e) => setReturnDate(e.target.value)}
-              type='date'
-              id='return-date'
-              required
-              className='border border-borderColor px-3 py-2 rounded-lg'
+              onClick={() => {
+                if (!pickupDate) return toast.error('Select pickup date first')
+                setShowReturn(!showReturn)
+                setShowPickup(false)
+              }}
+              className='border px-3 py-2 rounded-lg w-full cursor-pointer'
             />
+            {showReturn && (
+              <div className='absolute z-30 bg-white border rounded-lg mt-1'>
+                <DayPicker
+                  mode='single'
+                  disabled={[
+                    { before: fromYMD(pickupDate) },
+                    ...disabledDates
+                  ]}
+                  onSelect={(date) => {
+                    if (!date) return
+                    setReturnDate(toYMD(date))
+                    setShowReturn(false)
+                  }}
+                />
+              </div>
+            )}
           </div>
 
-          {/* Estimated total */}
           {estimatedTotal && (
-            <div className='text-sm text-gray-700'>
+            <div className='text-sm'>
               Estimated total:{' '}
               <span className='font-semibold'>
-                {currency}
-                {estimatedTotal}
+                {currency}{estimatedTotal}
               </span>
             </div>
           )}
 
           <button
-            type='submit'
-            className='w-full bg-primary hover:bg-primary-dull transition-all py-3 font-medium text-white rounded-xl cursor-pointer'
+            type='button'
+            onClick={handleSubmit}
+            className='w-full bg-primary py-3 text-white rounded-xl'
           >
             Book Now
           </button>
-
-          <p className='text-center text-sm'>
-            No credit card required to reserve
-          </p>
         </form>
       </div>
     </div>

@@ -121,7 +121,7 @@ const MyBookings = () => {
 
               {/* Action buttons */}
               <div className='mt-6 flex flex-wrap gap-3 items-center'>
-                {booking.status !== 'cancelled' && (
+                {booking.status === 'confirmed' && (
                   <button
                     onClick={() => downloadReceipt(booking._id, index)}
                     disabled={downloadingId === booking._id}
