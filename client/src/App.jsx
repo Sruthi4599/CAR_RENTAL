@@ -14,6 +14,7 @@ import ManageBookings from './pages/owner/ManageBookings'
 import Login from './components/Login'
 import { Toaster } from 'react-hot-toast'
 import { useAppContext } from './context/AppContext'
+import Chatbot from "./components/Chatbot"
 
 const App = () => {
   const { showLogin } = useAppContext()
@@ -40,7 +41,7 @@ const App = () => {
           <Route path='manage-bookings' element={<ManageBookings />} />
         </Route>
       </Routes>
-
+       {!isOwnerPath && <Chatbot />}
       {!isOwnerPath && <Footer />}
     </>
   )
