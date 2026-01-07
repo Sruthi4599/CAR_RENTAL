@@ -3,10 +3,12 @@ import "dotenv/config";
 import cors from "cors";
 import connectDB from "./configs/db.js";
 
+// Routes
 import userRouter from "./routes/userRoutes.js";
 import ownerRouter from "./routes/ownerRoutes.js";
 import bookingRouter from "./routes/bookingRoutes.js";
-import dashboardRoutes from "./routes/dashboardRoutes.js"; // ✅ NEW
+import dashboardRoutes from "./routes/dashboardRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 
 // Initialize Express App
 const app = express();
@@ -22,10 +24,11 @@ app.use(express.json());
 app.get("/", (req, res) => res.send("Server is running"));
 
 // Routes
-app.use("/api/owner", ownerRouter);
-app.use("/api/bookings", bookingRouter); // ✅ cancel booking works here
 app.use("/api/users", userRouter);
-app.use("/api/dashboard", dashboardRoutes); // ✅ DASHBOARD ROUTES
+app.use("/api/owner", ownerRouter);
+app.use("/api/bookings", bookingRouter);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/chat", chatRoutes);
 
 // Server
 const PORT = process.env.PORT || 3000;
