@@ -37,7 +37,7 @@ const Dashboard = () => {
     }
   };
 
-  // 🔥 FIX: Wait for BOTH token & isOwner
+  // 🔥 Fetch only summary data
   useEffect(() => {
     if (token && isOwner) {
       fetchDashboardData();
@@ -48,9 +48,10 @@ const Dashboard = () => {
     <div className='px-4 pt-10 md:px-10 flex-1'>
       <Title
         title="Admin Dashboard"
-        subTitle="Monitor overall platform performance including total cars, bookings, revenue, and recent activities"
+        subTitle="Quick overview of platform activity and performance"
       />
 
+      {/* DASHBOARD CARDS */}
       <div className='grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 my-8 max-w-3xl'>
         {dashboardCards.map((card, index) => (
           <div
@@ -68,6 +69,7 @@ const Dashboard = () => {
         ))}
       </div>
 
+      {/* RECENT BOOKINGS + MONTHLY REVENUE */}
       <div className='flex flex-wrap items-start gap-6 mb-8 w-full'>
         <div className='p-4 md:p-6 border border-borderColor rounded-md max-w-lg w-full'>
           <h1 className='text-lg font-medium'>Recent Bookings</h1>
