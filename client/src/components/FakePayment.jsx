@@ -8,24 +8,28 @@ const FakePayment = ({ amount, userId, carId, onSuccess }) => {
     setLoading(true);
     try {
       const res = await axios.post(
-  "http://localhost:3000/api/payment/fake-payment",
-  { amount, userId, carId }
-);
-
+        "http://localhost:3000/api/payment/fake-payment",
+        { amount, userId, carId }
+      );
 
       alert("Payment Successful ✅");
-      onSuccess(res.data);
+
+      // ✅ IMPORTANT FIX: Always send status: "PAID"
+      onSuccess({
+        ...res.data,
+        status: "PAID"
+      });
+
     } catch (err) {
-  console.error("❌ Payment error full:", err);
-  console.error("❌ Response:", err.response);
-  console.error("❌ Message:", err.message);
+      console.error("❌ Payment error full:", err);
+      console.error("❌ Response:", err.response);
+      console.error("❌ Message:", err.message);
 
-  alert(
-    err.response?.data?.message ||
-    err.message ||
-    "Payment Failed ❌"
-  );
-
+      alert(
+        err.response?.data?.message ||
+        err.message ||
+        "Payment Failed ❌"
+      );
     } finally {
       setLoading(false);
     }
@@ -40,6 +44,7 @@ const FakePayment = ({ amount, userId, carId, onSuccess }) => {
         background: "#16a34a",
         color: "white",
         borderRadius: "6px",
+        width: "100%"
       }}
     >
       {loading ? "Processing..." : `Pay ₹${amount}`}

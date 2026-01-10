@@ -1,28 +1,26 @@
 import mongoose from "mongoose";
 
-const { ObjectId } = mongoose.Schema.Types;
-
 const bookingSchema = new mongoose.Schema(
   {
-    car: {
-      type: ObjectId,
-      ref: "Car",
-      required: true
-    },
-
     user: {
-      type: ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true
     },
 
     owner: {
-      type: ObjectId,
-      ref: "User",
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Owner",
       required: true
     },
 
-    pickupDate: {
+    car: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Car",
+      required: true
+    },
+
+    pickupDate: {          // ✅ NOT pickupTime
       type: Date,
       required: true
     },
@@ -32,22 +30,36 @@ const bookingSchema = new mongoose.Schema(
       required: true
     },
 
-    // ✅ UPDATED STATUS FIELD (supports cancel)
+    price: {               // ✅ NOT amount
+      type: Number,
+      required: true
+    },
+
     status: {
       type: String,
       enum: ["pending", "confirmed", "cancelled"],
       default: "confirmed"
     },
 
-    price: {
+    paymentStatus: {
+      type: String,
+      enum: ["PAID", "REFUNDED"],
+      default: "PAID"
+    },
+
+    refundAmount: {
       type: Number,
-      required: true
-    }
+      default: 0
+    },
+    extensionPayment: {
+  type: Number,
+  default: 0
+},
+
+    cancelledAt: Date
   },
   { timestamps: true }
+  
 );
 
-const Booking =
-  mongoose.models.Booking || mongoose.model("Booking", bookingSchema);
-
-export default Booking;
+export default mongoose.model("Booking", bookingSchema);

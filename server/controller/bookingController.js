@@ -3,7 +3,19 @@ import Car from "../models/Car.js";
 import { calculateDynamicPrice } from "../utils/pricingEngine.js";
 import checkAvailability from "../utils/checkAvailability.js";
 import PDFDocument from "pdfkit";
+import { getRefundPercentage } from "../utils/refundCalculator.js";
 
+/* ===================== HELPER: MINIMUM 1 DAY ===================== */
+const ensureMinimumOneDay = (pickupDate, returnDate) => {
+  let days =
+    (new Date(returnDate) - new Date(pickupDate)) /
+    (1000 * 60 * 60 * 24);
+
+  days = Math.ceil(days);
+  if (days < 1) days = 1;
+
+  return days;
+};
 
 /* ===================== CREATE BOOKING ===================== */
 export const createBooking = async (req, res) => {
@@ -20,18 +32,27 @@ export const createBooking = async (req, res) => {
       return res.status(400).json({ success: false, message: "Car not available" });
     }
 
-    const pricing = await calculateDynamicPrice(car, pickupDate, returnDate);
+    // ✅ enforce minimum 1 day
+    const days = ensureMinimumOneDay(pickupDate, returnDate);
+
+    const pricing = await calculateDynamicPrice(
+      car,
+      pickupDate,
+      new Date(
+        new Date(pickupDate).getTime() + days * 24 * 60 * 60 * 1000
+      )
+    );
 
     const booking = await Booking.create({
-  user: req.user._id,
-  owner: car.owner,   // ✅ ADD THIS LINE
-  car: carId,
-  pickupDate,
-  returnDate,
-  price: pricing.totalPrice,
-  status: "pending",
-});
-
+      user: req.user._id,
+      owner: car.owner,
+      car: carId,
+      pickupDate,
+      returnDate,
+      price: pricing.totalPrice,
+      status: "confirmed",
+      paymentStatus: "PAID"
+    });
 
     res.json({ success: true, booking });
   } catch (error) {
@@ -55,26 +76,65 @@ export const getUserBookings = async (req, res) => {
 /* ===================== GET OWNER BOOKINGS ===================== */
 export const getOwnerBookings = async (req, res) => {
   try {
-    const bookings = await Booking.find().populate("car user");
+    const bookings = await Booking.find({ owner: req.user._id })
+      .populate("car user");
+
     res.json({ success: true, bookings });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-/* ===================== CANCEL BOOKING ===================== */
+/* ===================== CANCEL BOOKING (FAKE REFUND) ===================== */
 export const cancelBooking = async (req, res) => {
   try {
-    const booking = await Booking.findById(req.params.bookingId);
+    const { bookingId } = req.params;
+
+    const booking = await Booking.findById(bookingId);
     if (!booking) {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
+    if (booking.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: "Booking already cancelled"
+      });
+    }
+
+    const now = new Date();
+    const pickupTime = new Date(booking.pickupDate);
+
+    const diffMs = pickupTime - now;
+    const hoursBeforePickup = diffMs / (1000 * 60 * 60);
+
+    if (hoursBeforePickup <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot cancel after pickup time"
+      });
+    }
+
+    // 💰 Fake refund logic
+    const refundPercent = getRefundPercentage(hoursBeforePickup);
+    const refundAmount = booking.price * refundPercent;
+
     booking.status = "cancelled";
+    booking.refundAmount = refundAmount;
+    booking.paymentStatus = refundAmount > 0 ? "REFUNDED" : "PAID";
+    booking.cancelledAt = new Date();
+
     await booking.save();
 
-    res.json({ success: true, message: "Booking cancelled successfully" });
+    res.json({
+      success: true,
+      message: "Booking cancelled successfully",
+      refundPercentage: refundPercent * 100,
+      refundAmount
+    });
+
   } catch (error) {
+    console.error("Cancel booking error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -83,7 +143,7 @@ export const cancelBooking = async (req, res) => {
 export const extendBooking = async (req, res) => {
   try {
     const { id } = req.params;
-    const { returnDate } = req.body;
+    const { returnDate, payment } = req.body;
 
     const booking = await Booking.findById(id).populate("car");
     if (!booking) {
@@ -93,17 +153,15 @@ export const extendBooking = async (req, res) => {
     if (booking.status !== "confirmed") {
       return res.status(400).json({
         success: false,
-        message: "Only confirmed bookings can be extended",
+        message: "Only confirmed bookings can be extended"
       });
     }
 
-    const currentReturn = new Date(booking.returnDate);
     const newReturn = new Date(returnDate);
-
-    if (newReturn <= currentReturn) {
+    if (newReturn <= booking.returnDate) {
       return res.status(400).json({
         success: false,
-        message: "New return date must be after current return date",
+        message: "New return date must be after current return date"
       });
     }
 
@@ -117,36 +175,54 @@ export const extendBooking = async (req, res) => {
     if (!available) {
       return res.status(400).json({
         success: false,
-        message: "Car is not available for the selected date",
+        message: "Car not available for extension"
       });
     }
 
+    // 🔥 Calculate new price
     const pricing = await calculateDynamicPrice(
       booking.car,
       booking.pickupDate,
       newReturn
     );
 
+    const newTotal = pricing.totalPrice;
+    const extraAmount = newTotal - booking.price;
+
+    // 🔴 FIRST CALL → ask for payment
+    if (extraAmount > 0 && !payment) {
+      return res.status(400).json({
+        success: false,
+        message: "Additional payment required",
+        extraAmount
+      });
+    }
+
+    
+
+    // ✅ UPDATE BOOKING ONCE
     booking.returnDate = newReturn;
-    booking.price = pricing.totalPrice;
+    booking.price = newTotal;
+
     await booking.save();
 
     res.json({
       success: true,
       message: "Booking extended successfully",
-      booking,
+      extraAmount
     });
+
   } catch (error) {
+    console.error("Extend booking error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
+
 /* ===================== PDF RECEIPT ===================== */
 export const generateBookingPDF = async (req, res) => {
   try {
-    const bookingId = req.params.id;
-
-    const booking = await Booking.findById(bookingId)
+    const booking = await Booking.findById(req.params.id)
       .populate("car")
       .populate("user");
 
@@ -154,7 +230,6 @@ export const generateBookingPDF = async (req, res) => {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    // ✅ Only booking owner can download
     if (booking.user._id.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: "Unauthorized" });
     }
@@ -171,58 +246,29 @@ export const generateBookingPDF = async (req, res) => {
     doc.fontSize(22).text("Car Rental Receipt", { align: "center" });
     doc.moveDown();
 
-    doc.fontSize(12);
     doc.text(`Booking ID: ${booking._id}`);
-    doc.text(`Customer Name: ${booking.user.name}`);
-    doc.text(`Email: ${booking.user.email}`);
-    doc.moveDown();
-
+    doc.text(`Customer: ${booking.user.name}`);
     doc.text(`Car: ${booking.car.brand} ${booking.car.model}`);
-    doc.text(`Category: ${booking.car.category}`);
-    doc.text(`Location: ${booking.car.location}`);
+    doc.text(`Pickup: ${booking.pickupDate.toDateString()}`);
+    doc.text(`Return: ${booking.returnDate.toDateString()}`);
     doc.moveDown();
 
-    doc.text(`Pickup Date: ${booking.pickupDate.toISOString().split("T")[0]}`);
-    doc.text(`Return Date: ${booking.returnDate.toISOString().split("T")[0]}`);
-    doc.moveDown();
-
-    doc.fontSize(14).text(`Total Price: ₹${booking.price}`, { underline: true });
-    doc.moveDown(2);
-
-    doc.fontSize(10).text(
-      "Thank you for choosing CarRental.\nDrive safe!",
-      { align: "center" }
-    );
-
+    doc.fontSize(14).text(`Total Price: ₹${booking.price}`);
     doc.end();
+
   } catch (error) {
-    console.error("PDF ERROR:", error);
-    if (!res.headersSent) {
-      res.status(500).json({ success: false, message: error.message });
-    }
+    res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 /* ===================== CHANGE STATUS ===================== */
 export const changeBookingStatus = async (req, res) => {
   try {
     const { bookingId, status } = req.body;
 
-    if (!bookingId || !status) {
-      return res.status(400).json({
-        success: false,
-        message: "bookingId and status are required",
-      });
-    }
-
     const booking = await Booking.findById(bookingId);
-
     if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: "Booking not found",
-      });
+      return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
     booking.status = status;
@@ -231,17 +277,12 @@ export const changeBookingStatus = async (req, res) => {
     res.json({
       success: true,
       message: `Booking ${status} successfully`,
-      booking,
+      booking
     });
   } catch (error) {
-    console.error("changeBookingStatus error:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 /* ===================== CHECK AVAILABILITY ===================== */
 export const checkAvailabilityOfCar = async (req, res) => {
@@ -253,14 +294,24 @@ export const checkAvailabilityOfCar = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/* ===================== UNAVAILABLE DATES ===================== */
 export const getUnavailableDates = async (req, res) => {
   try {
     const { carId } = req.params;
+    const { bookingId } = req.query; // 👈 NEW
 
-    const bookings = await Booking.find({
+    const query = {
       car: carId,
       status: { $ne: "cancelled" }
-    });
+    };
+
+    // ✅ EXCLUDE CURRENT BOOKING WHEN EXTENDING
+    if (bookingId) {
+      query._id = { $ne: bookingId };
+    }
+
+    const bookings = await Booking.find(query);
 
     let disabledDates = [];
 
@@ -274,10 +325,7 @@ export const getUnavailableDates = async (req, res) => {
       }
     });
 
-    res.json({
-      success: true,
-      disabledDates
-    });
+    res.json({ success: true, disabledDates });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

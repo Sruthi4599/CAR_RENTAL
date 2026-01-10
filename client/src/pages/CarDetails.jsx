@@ -6,7 +6,7 @@ import { useAppContext } from '../context/AppContext'
 import toast from 'react-hot-toast'
 import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/dist/style.css'
-import FakePayment from '../components/FakePayment'   // ✅ ADDED
+import FakePayment from '../components/FakePayment'
 
 /* -------- timezone safe helpers -------- */
 const toYMD = (date) => {
@@ -23,16 +23,17 @@ const fromYMD = (str) => {
 
 const CarDetails = () => {
   const { id } = useParams()
+  const navigate = useNavigate()
+
   const {
     axios,
     pickupDate,
     setPickupDate,
     returnDate,
     setReturnDate,
-    user                                  // ✅ used for payment
+    user
   } = useAppContext()
 
-  const navigate = useNavigate()
   const [car, setCar] = useState(null)
   const [disabledDates, setDisabledDates] = useState([])
   const [showPickup, setShowPickup] = useState(false)
@@ -56,7 +57,7 @@ const CarDetails = () => {
 
   /* -------- LOAD DISABLED DATES -------- */
   useEffect(() => {
-    const fetchDisabled = async () => {
+    const fetchDisabledDates = async () => {
       try {
         const { data } = await axios.get(
           `/api/bookings/unavailable-dates/${id}`
@@ -69,19 +70,22 @@ const CarDetails = () => {
           setDisabledDates(dates)
         }
       } catch {
-        console.log('Failed to load booked dates')
+        console.log('Failed to load unavailable dates')
       }
     }
-    fetchDisabled()
+    fetchDisabledDates()
   }, [id])
 
-  /* -------- PRICE -------- */
+  /* -------- PRICE CALCULATION (MIN 1 DAY) -------- */
   const calculateEstimatedTotal = () => {
     if (!pickupDate || !returnDate || !car) return null
+
     const start = fromYMD(pickupDate)
     const end = fromYMD(returnDate)
-    const days = Math.ceil((end - start) / 86400000)
-    if (days <= 0) return null
+
+    let days = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
+    if (days < 1) days = 1
+
     return days * car.pricePerDay
   }
 
@@ -101,7 +105,10 @@ const CarDetails = () => {
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12'>
         {/* LEFT */}
         <div className='lg:col-span-2'>
-          <img src={car.image} className='w-full rounded-xl mb-6 shadow-md' />
+          <img
+            src={car.image}
+            className='w-full rounded-xl mb-6 shadow-md'
+          />
 
           <div className='space-y-6'>
             <div>
@@ -117,16 +124,16 @@ const CarDetails = () => {
 
             <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
               {[
-                { icons: assets.users_icon, text: `${car.seating_capacity} Seats` },
-                { icons: assets.fuel_icon, text: car.fuel_type },
-                { icons: assets.car_icon, text: car.transmission },
-                { icons: assets.location_icon, text: car.location }
-              ].map(({ icons, text }) => (
+                { icon: assets.users_icon, text: `${car.seating_capacity} Seats` },
+                { icon: assets.fuel_icon, text: car.fuel_type },
+                { icon: assets.car_icon, text: car.transmission },
+                { icon: assets.location_icon, text: car.location }
+              ].map(({ icon, text }) => (
                 <div
                   key={text}
                   className='flex flex-col items-center bg-light p-4 rounded-lg'
                 >
-                  <img src={icons} className='h-5 mb-2' />
+                  <img src={icon} className='h-5 mb-2' />
                   {text}
                 </div>
               ))}
@@ -157,7 +164,7 @@ const CarDetails = () => {
           </div>
         </div>
 
-        {/* BOOKING FORM */}
+        {/* RIGHT – BOOKING FORM */}
         <form className='shadow-lg h-max sticky top-18 rounded-xl p-6 space-y-6'>
           <p className='text-2xl font-semibold'>
             {currency}{car.pricePerDay}
@@ -166,7 +173,7 @@ const CarDetails = () => {
 
           <hr />
 
-          {/* PICKUP */}
+          {/* PICKUP DATE */}
           <div className='relative'>
             <label>Pick Date</label>
             <input
@@ -194,14 +201,15 @@ const CarDetails = () => {
             )}
           </div>
 
-          {/* RETURN */}
+          {/* RETURN DATE */}
           <div className='relative'>
             <label>Return Date</label>
             <input
               readOnly
               value={returnDate}
               onClick={() => {
-                if (!pickupDate) return toast.error('Select pickup date first')
+                if (!pickupDate)
+                  return toast.error('Select pickup date first')
                 setShowReturn(!showReturn)
                 setShowPickup(false)
               }}
@@ -225,6 +233,7 @@ const CarDetails = () => {
             )}
           </div>
 
+          {/* PRICE */}
           {estimatedTotal && (
             <div className='text-sm'>
               Estimated total:{' '}
@@ -234,7 +243,7 @@ const CarDetails = () => {
             </div>
           )}
 
-          {/* ✅ FAKE PAYMENT ADDED */}
+          {/* FAKE PAYMENT */}
           {estimatedTotal && (
             <FakePayment
               amount={estimatedTotal}
@@ -257,7 +266,9 @@ const CarDetails = () => {
                     toast.error(data.message || 'Booking failed')
                   }
                 } catch (error) {
-                  toast.error(error.response?.data?.message || 'Booking failed')
+                  toast.error(
+                    error.response?.data?.message || 'Booking failed'
+                  )
                 }
               }}
             />
