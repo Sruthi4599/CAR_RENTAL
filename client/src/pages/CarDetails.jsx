@@ -6,6 +6,7 @@ import { useAppContext } from '../context/AppContext'
 import toast from 'react-hot-toast'
 import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/dist/style.css'
+import FakePayment from '../components/FakePayment'   // ✅ ADDED
 
 /* -------- timezone safe helpers -------- */
 const toYMD = (date) => {
@@ -27,7 +28,8 @@ const CarDetails = () => {
     pickupDate,
     setPickupDate,
     returnDate,
-    setReturnDate
+    setReturnDate,
+    user                                  // ✅ used for payment
   } = useAppContext()
 
   const navigate = useNavigate()
@@ -73,33 +75,6 @@ const CarDetails = () => {
     fetchDisabled()
   }, [id])
 
-  /* -------- BOOKING -------- */
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-
-    if (!pickupDate || !returnDate) {
-      toast.error('Select pickup and return dates')
-      return
-    }
-
-    try {
-      const { data } = await axios.post('/api/bookings/create', {
-        carId: id,
-        pickupDate,
-        returnDate
-      })
-
-      if (data.success) {
-        toast.success('Booking successful')
-        navigate('/my-bookings')
-      } else {
-        toast.error(data.message || 'Booking failed')
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || error.message)
-    }
-  }
-
   /* -------- PRICE -------- */
   const calculateEstimatedTotal = () => {
     if (!pickupDate || !returnDate || !car) return null
@@ -126,10 +101,7 @@ const CarDetails = () => {
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12'>
         {/* LEFT */}
         <div className='lg:col-span-2'>
-          <img
-            src={car.image}
-            className='w-full rounded-xl mb-6 shadow-md'
-          />
+          <img src={car.image} className='w-full rounded-xl mb-6 shadow-md' />
 
           <div className='space-y-6'>
             <div>
@@ -262,13 +234,34 @@ const CarDetails = () => {
             </div>
           )}
 
-          <button
-            type='button'
-            onClick={handleSubmit}
-            className='w-full bg-primary py-3 text-white rounded-xl'
-          >
-            Book Now
-          </button>
+          {/* ✅ FAKE PAYMENT ADDED */}
+          {estimatedTotal && (
+            <FakePayment
+              amount={estimatedTotal}
+              userId={user?._id}
+              carId={car._id}
+              onSuccess={async (paymentData) => {
+                try {
+                  const { data } = await axios.post('/api/bookings/create', {
+                    carId: car._id,
+                    pickupDate,
+                    returnDate,
+                    price: estimatedTotal,
+                    payment: paymentData
+                  })
+
+                  if (data.success) {
+                    toast.success('Payment successful & booking confirmed ✅')
+                    navigate('/my-bookings')
+                  } else {
+                    toast.error(data.message || 'Booking failed')
+                  }
+                } catch (error) {
+                  toast.error(error.response?.data?.message || 'Booking failed')
+                }
+              }}
+            />
+          )}
         </form>
       </div>
     </div>

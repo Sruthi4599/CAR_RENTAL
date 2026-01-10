@@ -9,6 +9,7 @@ import ownerRouter from "./routes/ownerRoutes.js";
 import bookingRouter from "./routes/bookingRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 // Initialize Express App
 const app = express();
@@ -16,8 +17,11 @@ const app = express();
 // Connect Database
 await connectDB();
 
-// Middleware
-app.use(cors());
+// ✅ MIDDLEWARE (ORDER MATTERS)
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
 app.use(express.json());
 
 // Test Route
@@ -29,9 +33,10 @@ app.use("/api/owner", ownerRouter);
 app.use("/api/bookings", bookingRouter);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/payment", paymentRoutes);
 
 // Server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000; // ✅ MATCH FRONTEND
 app.listen(PORT, () =>
   console.log(`Server running on port ${PORT}`)
 );
