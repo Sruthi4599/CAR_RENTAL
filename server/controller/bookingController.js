@@ -102,22 +102,44 @@ export const cancelBooking = async (req, res) => {
       });
     }
 
-    const now = new Date();
-    const pickupTime = new Date(booking.pickupDate);
+    const isOwner = booking.owner.toString() === req.user._id.toString();
+    const isUser = booking.user.toString() === req.user._id.toString();
 
-    const diffMs = pickupTime - now;
-    const hoursBeforePickup = diffMs / (1000 * 60 * 60);
-
-    if (hoursBeforePickup <= 0) {
-      return res.status(400).json({
+    if (!isOwner && !isUser) {
+      return res.status(403).json({
         success: false,
-        message: "Cannot cancel after pickup time"
+        message: "Not authorized to cancel this booking"
       });
     }
 
-    // 💰 Fake refund logic
-    const refundPercent = getRefundPercentage(hoursBeforePickup);
-    const refundAmount = booking.price * refundPercent;
+    let refundAmount = 0;
+    let refundPercent = 0;
+
+    /* ================= OWNER CANCEL → FULL REFUND ================= */
+    if (isOwner) {
+      refundPercent = 1;
+      refundAmount = booking.price;
+      booking.cancelledBy = "OWNER";
+    }
+
+    /* ================= USER CANCEL → TIME BASED REFUND ================= */
+    if (isUser) {
+      const now = new Date();
+      const pickupTime = new Date(booking.pickupDate);
+      const diffMs = pickupTime - now;
+      const hoursBeforePickup = diffMs / (1000 * 60 * 60);
+
+      if (hoursBeforePickup <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Cannot cancel after pickup time"
+        });
+      }
+
+      refundPercent = getRefundPercentage(hoursBeforePickup);
+      refundAmount = booking.price * refundPercent;
+      booking.cancelledBy = "USER";
+    }
 
     booking.status = "cancelled";
     booking.refundAmount = refundAmount;
@@ -129,6 +151,7 @@ export const cancelBooking = async (req, res) => {
     res.json({
       success: true,
       message: "Booking cancelled successfully",
+      cancelledBy: booking.cancelledBy,
       refundPercentage: refundPercent * 100,
       refundAmount
     });
@@ -138,6 +161,7 @@ export const cancelBooking = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 /* ===================== EXTEND BOOKING ===================== */
 export const extendBooking = async (req, res) => {
@@ -271,7 +295,17 @@ export const changeBookingStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    booking.status = status;
+    // 🔴 OWNER CANCEL → FULL REFUND
+    if (status === "cancelled") {
+      booking.status = "cancelled";
+      booking.cancelledBy = "OWNER";
+      booking.paymentStatus = "REFUNDED";
+      booking.refundAmount = booking.price;
+      booking.cancelledAt = new Date();
+    } else {
+      booking.status = status;
+    }
+
     await booking.save();
 
     res.json({
@@ -283,6 +317,7 @@ export const changeBookingStatus = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 /* ===================== CHECK AVAILABILITY ===================== */
 export const checkAvailabilityOfCar = async (req, res) => {

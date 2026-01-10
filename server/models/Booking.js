@@ -20,7 +20,7 @@ const bookingSchema = new mongoose.Schema(
       required: true
     },
 
-    pickupDate: {          // ✅ NOT pickupTime
+    pickupDate: {
       type: Date,
       required: true
     },
@@ -30,7 +30,7 @@ const bookingSchema = new mongoose.Schema(
       required: true
     },
 
-    price: {               // ✅ NOT amount
+    price: {
       type: Number,
       required: true
     },
@@ -51,15 +51,21 @@ const bookingSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+
     extensionPayment: {
-  type: Number,
-  default: 0
-},
+      type: Number,
+      default: 0
+    },
+
+    cancelledBy: {
+      type: String,
+      enum: ["USER", "OWNER"],
+      default: null
+    },
 
     cancelledAt: Date
   },
   { timestamps: true }
-  
 );
 
 export default mongoose.model("Booking", bookingSchema);
