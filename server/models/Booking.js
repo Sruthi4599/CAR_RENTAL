@@ -27,7 +27,13 @@ const bookingSchema = new mongoose.Schema(
 
     returnDate: {
       type: Date,
-      required: true
+      required: true,
+      validate: {
+        validator: function (value) {
+          return value > this.pickupDate;
+        },
+        message: "Return date must be after pickup date"
+      }
     },
 
     price: {
@@ -68,7 +74,7 @@ const bookingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/* 🔐 INDEX for fast overlap checks */
+/* 🔐 INDEX for fast overlap checks (DO NOT REMOVE) */
 bookingSchema.index({ car: 1, pickupDate: 1, returnDate: 1 });
 
 export default mongoose.model("Booking", bookingSchema);

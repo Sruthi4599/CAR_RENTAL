@@ -16,15 +16,24 @@ import { protect } from "../middleware/auth.js";
 
 const bookingRouter = express.Router();
 
+/* ===================== AVAILABILITY & PRICING ===================== */
 bookingRouter.post("/preview-price", protect, previewBookingPrice);
 bookingRouter.post("/check-availability", checkAvailabilityOfCar);
+bookingRouter.get("/unavailable-dates/:carId", getUnavailableDates);
+
+/* ===================== CREATE BOOKING ===================== */
 bookingRouter.post("/create", protect, createBooking);
+
+/* ===================== LIST BOOKINGS ===================== */
 bookingRouter.post("/user", protect, getUserBookings);
 bookingRouter.post("/owner", protect, getOwnerBookings);
+
+/* ===================== BOOKING ACTIONS ===================== */
 bookingRouter.post("/change-status", protect, changeBookingStatus);
 bookingRouter.post("/cancel/:bookingId", protect, cancelBooking);
 bookingRouter.put("/extend/:id", protect, extendBooking);
+
+/* ===================== RECEIPT (KEEP LAST) ===================== */
 bookingRouter.get("/:id/receipt", protect, generateBookingPDF);
-bookingRouter.get("/unavailable-dates/:carId", getUnavailableDates);
 
 export default bookingRouter;

@@ -8,30 +8,46 @@ import { getRefundPercentage } from "../utils/refundCalculator.js";
 /* ===================== HELPER ===================== */
 const ensureMinimumOneDay = (pickupDate, returnDate) => {
   let days =
-    (new Date(returnDate) - new Date(pickupDate)) /
-    (1000 * 60 * 60 * 24);
+    (returnDate - pickupDate) / (1000 * 60 * 60 * 24);
 
   days = Math.ceil(days);
   if (days < 1) days = 1;
   return days;
 };
 
-/* ===================== CREATE BOOKING ===================== */
+/* ===================== CREATE BOOKING (FIXED) ===================== */
 export const createBooking = async (req, res) => {
   try {
     const { carId, pickupDate, returnDate } = req.body;
+
+    if (!carId || !pickupDate || !returnDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields"
+      });
+    }
+
+    const pickup = new Date(pickupDate);
+    const ret = new Date(returnDate);
+
+    if (isNaN(pickup) || isNaN(ret) || ret <= pickup) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pickup or return date"
+      });
+    }
 
     const car = await Car.findById(carId);
     if (!car) {
       return res.status(404).json({ success: false, message: "Car not found" });
     }
 
-    // ✅ DB-level overlap protection
+    /* 🔐 HARD BLOCK: DATE OVERLAP CHECK */
     const conflict = await Booking.findOne({
       car: carId,
       status: { $ne: "cancelled" },
-      pickupDate: { $lt: new Date(returnDate) },
-      returnDate: { $gt: new Date(pickupDate) }
+      pickupDate: { $lt: ret },
+      returnDate: { $gt: pickup }
     });
 
     if (conflict) {
@@ -41,30 +57,27 @@ export const createBooking = async (req, res) => {
       });
     }
 
-    // ✅ same-day booking = 1 day
-    const days = ensureMinimumOneDay(pickupDate, returnDate);
+    const days = ensureMinimumOneDay(pickup, ret);
 
-    // ✅ dynamic pricing (single source of truth)
     const pricing = await calculateDynamicPrice(
       car,
-      pickupDate,
-      new Date(
-        new Date(pickupDate).getTime() + days * 24 * 60 * 60 * 1000
-      )
+      pickup,
+      new Date(pickup.getTime() + days * 24 * 60 * 60 * 1000)
     );
 
     const booking = await Booking.create({
       user: req.user._id,
       owner: car.owner,
       car: carId,
-      pickupDate,
-      returnDate,
+      pickupDate: pickup,
+      returnDate: ret,
       price: pricing.totalPrice,
-      status: "confirmed",
+      status: "confirmed",        // 🔴 FIXED
       paymentStatus: "PAID"
     });
 
     res.json({ success: true, booking });
+
   } catch (error) {
     console.error("Create booking error:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -76,19 +89,20 @@ export const previewBookingPrice = async (req, res) => {
   try {
     const { carId, pickupDate, returnDate } = req.body;
 
+    const pickup = new Date(pickupDate);
+    const ret = new Date(returnDate);
+
     const car = await Car.findById(carId);
     if (!car) {
       return res.status(404).json({ success: false, message: "Car not found" });
     }
 
-    const days = ensureMinimumOneDay(pickupDate, returnDate);
+    const days = ensureMinimumOneDay(pickup, ret);
 
     const pricing = await calculateDynamicPrice(
       car,
-      pickupDate,
-      new Date(
-        new Date(pickupDate).getTime() + days * 24 * 60 * 60 * 1000
-      )
+      pickup,
+      new Date(pickup.getTime() + days * 24 * 60 * 60 * 1000)
     );
 
     res.json({ success: true, pricing });
@@ -134,7 +148,7 @@ export const cancelBooking = async (req, res) => {
     return res.status(403).json({ success: false, message: "Unauthorized" });
   }
 
-  let refundPercent = isOwner
+  const refundPercent = isOwner
     ? 1
     : getRefundPercentage(
         (new Date(booking.pickupDate) - new Date()) /
@@ -175,7 +189,7 @@ export const extendBooking = async (req, res) => {
   const pricing = await calculateDynamicPrice(
     booking.car,
     booking.pickupDate,
-    returnDate
+    new Date(returnDate)
   );
 
   const extraAmount = pricing.totalPrice - booking.price;
@@ -188,7 +202,7 @@ export const extendBooking = async (req, res) => {
     });
   }
 
-  booking.returnDate = returnDate;
+  booking.returnDate = new Date(returnDate);
   booking.price = pricing.totalPrice;
   await booking.save();
 
