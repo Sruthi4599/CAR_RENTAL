@@ -60,7 +60,7 @@ export const createBooking = async (req, res) => {
       pickupDate,
       returnDate,
       price: pricing.totalPrice,
-      status: "confirmed",
+      status: "pending",
       paymentStatus: "PAID"
     });
 

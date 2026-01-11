@@ -275,7 +275,7 @@ const CarDetails = () => {
                   })
 
                   if (data.success) {
-                    toast.success('Payment successful & booking confirmed ✅')
+                    toast.success('Payment successful , booking is Pending & Check MyBookings after Sometime ✅')
                     navigate('/my-bookings')
                   } else {
                     toast.error(data.message || 'Booking failed')
