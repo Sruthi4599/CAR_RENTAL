@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createBooking,
+  previewBookingPrice,
   getUserBookings,
   getOwnerBookings,
   cancelBooking,
@@ -8,13 +9,14 @@ import {
   generateBookingPDF,
   changeBookingStatus,
   checkAvailabilityOfCar,
-   getUnavailableDates ,
+  getUnavailableDates
 } from "../controller/bookingController.js";
 
 import { protect } from "../middleware/auth.js";
 
 const bookingRouter = express.Router();
 
+bookingRouter.post("/preview-price", protect, previewBookingPrice);
 bookingRouter.post("/check-availability", checkAvailabilityOfCar);
 bookingRouter.post("/create", protect, createBooking);
 bookingRouter.post("/user", protect, getUserBookings);
@@ -23,8 +25,6 @@ bookingRouter.post("/change-status", protect, changeBookingStatus);
 bookingRouter.post("/cancel/:bookingId", protect, cancelBooking);
 bookingRouter.put("/extend/:id", protect, extendBooking);
 bookingRouter.get("/:id/receipt", protect, generateBookingPDF);
-bookingRouter.get(
-  "/unavailable-dates/:carId",
-  getUnavailableDates
-);
+bookingRouter.get("/unavailable-dates/:carId", getUnavailableDates);
+
 export default bookingRouter;

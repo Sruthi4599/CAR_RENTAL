@@ -39,6 +39,9 @@ const CarDetails = () => {
   const [showPickup, setShowPickup] = useState(false)
   const [showReturn, setShowReturn] = useState(false)
 
+  // ✅ NEW STATE for dynamic price
+  const [estimatedTotal, setEstimatedTotal] = useState(null)
+
   const currency = import.meta.env.VITE_CURRENCY
 
   /* -------- LOAD CAR -------- */
@@ -76,20 +79,32 @@ const CarDetails = () => {
     fetchDisabledDates()
   }, [id])
 
-  /* -------- PRICE CALCULATION (MIN 1 DAY) -------- */
-  const calculateEstimatedTotal = () => {
-    if (!pickupDate || !returnDate || !car) return null
+  /* -------- ✅ DYNAMIC PRICE CALCULATION (FIXED) -------- */
+  useEffect(() => {
+  const fetchPrice = async () => {
+    if (!pickupDate || !returnDate || !car) {
+      setEstimatedTotal(null);
+      return;
+    }
 
-    const start = fromYMD(pickupDate)
-    const end = fromYMD(returnDate)
+    try {
+      const { data } = await axios.post("/api/bookings/preview-price", {
+        carId: car._id,
+        pickupDate,
+        returnDate
+      });
 
-    let days = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
-    if (days < 1) days = 1
+      if (data.success) {
+        setEstimatedTotal(data.pricing.totalPrice);
+      }
+    } catch (err) {
+      console.error("Price fetch failed");
+    }
+  };
 
-    return days * car.pricePerDay
-  }
+  fetchPrice();
+}, [pickupDate, returnDate, car]);
 
-  const estimatedTotal = calculateEstimatedTotal()
 
   return car ? (
     <div className='px-6 md:px-16 lg:px-24 xl:px-32 mt-16'>
@@ -220,7 +235,7 @@ const CarDetails = () => {
                 <DayPicker
                   mode='single'
                   disabled={[
-                    { before: fromYMD(pickupDate) },
+                     { before: new Date(fromYMD(pickupDate).getTime() - 1) },
                     ...disabledDates
                   ]}
                   onSelect={(date) => {
@@ -243,7 +258,7 @@ const CarDetails = () => {
             </div>
           )}
 
-          {/* FAKE PAYMENT */}
+          {/* PAYMENT */}
           {estimatedTotal && (
             <FakePayment
               amount={estimatedTotal}
