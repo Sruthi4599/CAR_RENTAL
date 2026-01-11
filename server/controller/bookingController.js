@@ -30,7 +30,7 @@ export const createBooking = async (req, res) => {
     const pickup = new Date(pickupDate);
     const ret = new Date(returnDate);
 
-    if (isNaN(pickup) || isNaN(ret) || ret <= pickup) {
+    if (isNaN(pickup) || isNaN(ret) || ret < pickup) {
       return res.status(400).json({
         success: false,
         message: "Invalid pickup or return date"
@@ -44,11 +44,11 @@ export const createBooking = async (req, res) => {
 
     /* 🔐 HARD BLOCK: DATE OVERLAP CHECK */
     const conflict = await Booking.findOne({
-      car: carId,
-      status: { $ne: "cancelled" },
-      pickupDate: { $lt: ret },
-      returnDate: { $gt: pickup }
-    });
+    car: carId,
+    status: { $ne: "cancelled" },
+    pickupDate: { $lte: ret },
+    returnDate: { $gte: pickup }
+  });
 
     if (conflict) {
       return res.status(409).json({
@@ -72,7 +72,7 @@ export const createBooking = async (req, res) => {
       pickupDate: pickup,
       returnDate: ret,
       price: pricing.totalPrice,
-      status: "confirmed",        // 🔴 FIXED
+      status: "pending",        // 🔴 FIXED
       paymentStatus: "PAID"
     });
 

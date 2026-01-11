@@ -30,7 +30,7 @@ const bookingSchema = new mongoose.Schema(
       required: true,
       validate: {
         validator: function (value) {
-          return value > this.pickupDate;
+          return value >= this.pickupDate;
         },
         message: "Return date must be after pickup date"
       }
