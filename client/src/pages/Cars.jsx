@@ -13,10 +13,11 @@ const Cars = () => {
       const { data } = await axios.get('/api/users/cars')
 
       if (data.success) {
-        // show only available cars
+        // ✅ SHOW cars that are available OR missing isAvailable field
         const availableCars = data.cars.filter(
-          (car) => car.isAvailable === true
+          (car) => car.isAvailable !== false
         )
+
         setCars(availableCars)
       } else {
         toast.error(data.message || 'Failed to load cars')
