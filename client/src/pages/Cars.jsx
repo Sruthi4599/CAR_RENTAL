@@ -13,9 +13,9 @@ const Cars = () => {
       const { data } = await axios.get('/api/users/cars')
 
       if (data.success) {
-        // show only available cars
+        // ✅ SAFE FILTER
         const availableCars = data.cars.filter(
-          (car) => car.isAvailable === true
+          (car) => car.isAvailable !== false
         )
         setCars(availableCars)
       } else {

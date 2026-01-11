@@ -73,16 +73,24 @@ export const getUserData=async (req,res)=>{
 
 
 //Get all cars for the frontend
-export const getCars=async (req,res)=>{
-    try {
-        const cars=await Car.find({isAvaliable:true})
-        res.json({success:true,cars})
-    } catch (error) {
-        console.log(error.message);
-        res.json({success:false,message:error.message})
-        
-    }
-}
+export const getCars = async (req, res) => {
+  try {
+    const cars = await Car.find({
+      isAvailable: true
+    }).sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      cars
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 export const getCarById = async (req, res) => {
   try {
     const car = await Car.findById(req.params.id);

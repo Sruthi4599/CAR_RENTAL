@@ -16,38 +16,56 @@ export const changeRoleToOwner = async (req, res) => {
 
 //API TO LIST CAR
 
+// API TO LIST CAR
 export const addCar = async (req, res) => {
     try {
         const { _id } = req.user;
+
         let car = JSON.parse(req.body.carData);
         const imageFile = req.file;
-        //upload image to imagekit
-        const fileBuffer = fs.readFileSync(imageFile.path)
+
+        if (!imageFile) {
+            return res.json({
+                success: false,
+                message: "Car image is required"
+            });
+        }
+
+        // upload image to imagekit
+        const fileBuffer = fs.readFileSync(imageFile.path);
         const response = await imageKit.upload({
             file: fileBuffer,
             fileName: imageFile.originalname,
             folder: '/cars'
-        })
-        //optimizatio through imagekoit
-        var optimizedImageURL = imageKit.url({
+        });
+
+        // optimization through imagekit
+        const optimizedImageURL = imageKit.url({
             path: response.filePath,
             transformation: [
                 { width: '1280' },
-                { quality: 'auto' }, //auto compression
-                { format: 'webp' } //convert to  modern format
+                { quality: 'auto' },
+                { format: 'webp' }
             ]
         });
 
         const image = optimizedImageURL;
-        await Car.create({ ...car, owner: _id, image })
 
-        res.json({ success: true, message: "Car Added" })
-    }
-    catch (error) {
+        // 🔥 FIX IS HERE
+        await Car.create({
+            ...car,
+            owner: _id,
+            image,
+            isAvailable: true   // ✅ VERY IMPORTANT
+        });
+
+        res.json({ success: true, message: "Car Added" });
+
+    } catch (error) {
         console.log(error.message);
-        res.json({ success: false, message: error.message })
+        res.json({ success: false, message: error.message });
     }
-}
+};
 
 //API to list owner cars
 export const getOwnerCars = async (req, res) => {

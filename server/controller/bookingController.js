@@ -172,28 +172,48 @@ export const extendBooking = async (req, res) => {
 
   const booking = await Booking.findById(id).populate("car");
   if (!booking) {
-    return res.status(404).json({ success: false });
+    return res.status(404).json({ success: false, message: "Booking not found" });
   }
 
+  const newReturn = new Date(returnDate);
+  const currentReturn = new Date(booking.returnDate);
+
+  // ✅ ENFORCE NEXT-DAY EXTENSION
+  const minExtendDate = new Date(currentReturn);
+  minExtendDate.setDate(minExtendDate.getDate() + 1);
+
+  if (newReturn < minExtendDate) {
+    return res.status(400).json({
+      success: false,
+      message: "Extension date must be after current return date"
+    });
+  }
+
+  // ✅ CHECK AVAILABILITY ONLY FOR EXTENSION PERIOD
   const available = await checkAvailability(
     booking.car._id,
-    booking.pickupDate,
-    returnDate,
+    currentReturn,
+    newReturn,
     booking._id
   );
 
   if (!available) {
-    return res.status(400).json({ success: false, message: "Car not available" });
+    return res.status(400).json({
+      success: false,
+      message: "Car not available for extension"
+    });
   }
 
+  // 🔥 CALCULATE PRICE ONLY FOR EXTRA DAYS
   const pricing = await calculateDynamicPrice(
     booking.car,
-    booking.pickupDate,
-    new Date(returnDate)
+    currentReturn,
+    newReturn
   );
 
-  const extraAmount = pricing.totalPrice - booking.price;
+  const extraAmount = pricing.totalPrice;
 
+  // 💰 REQUIRE PAYMENT FOR EXTENSION
   if (extraAmount > 0 && !payment) {
     return res.status(400).json({
       success: false,
@@ -202,29 +222,114 @@ export const extendBooking = async (req, res) => {
     });
   }
 
-  booking.returnDate = new Date(returnDate);
-  booking.price = pricing.totalPrice;
+  // ✅ UPDATE BOOKING
+  booking.returnDate = newReturn;
+  booking.price += extraAmount;
   await booking.save();
 
-  res.json({ success: true, extraAmount });
+  res.json({
+    success: true,
+    message: "Booking extended successfully",
+    extraAmount
+  });
 };
 
-/* ===================== PDF ===================== */
 export const generateBookingPDF = async (req, res) => {
-  const booking = await Booking.findById(req.params.id)
-    .populate("car")
-    .populate("user");
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate("car")
+      .populate("user");
 
-  if (!booking) return res.status(404).json({ success: false });
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found"
+      });
+    }
 
-  const doc = new PDFDocument();
-  res.setHeader("Content-Type", "application/pdf");
-  doc.pipe(res);
-  doc.text(`Booking ID: ${booking._id}`);
-  doc.text(`Car: ${booking.car.brand}`);
-  doc.text(`Price: ₹${booking.price}`);
-  doc.end();
+    // 🔐 Only booking owner (user) can download PDF
+    if (booking.user._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=booking_${booking._id}.pdf`
+    );
+
+    const doc = new PDFDocument({ margin: 40 });
+    doc.pipe(res);
+
+    /* ===== TITLE ===== */
+    doc.fontSize(22).text("Car Rental Booking Receipt", {
+      align: "center"
+    });
+    doc.moveDown(2);
+
+    /* ===== BOOKING DETAILS ===== */
+    doc.fontSize(12);
+    doc.text(`Booking ID: ${booking._id}`);
+    doc.text(`Customer Name: ${booking.user.name}`);
+    doc.text(`Customer Email: ${booking.user.email}`);
+    doc.moveDown();
+
+    /* ===== CAR DETAILS ===== */
+    doc.text(
+      `Car: ${booking.car.brand} ${booking.car.model} (${booking.car.year})`
+    );
+    doc.text(`Fuel Type: ${booking.car.fuel_type}`);
+    doc.text(`Transmission: ${booking.car.transmission}`);
+    doc.text(`Location: ${booking.car.location}`);
+    doc.moveDown();
+
+    /* ===== DATE DETAILS ===== */
+    doc.text(
+      `Pickup Date: ${new Date(booking.pickupDate).toDateString()}`
+    );
+    doc.text(
+      `Return Date: ${new Date(booking.returnDate).toDateString()}`
+    );
+    doc.moveDown();
+
+    /* ===== PAYMENT DETAILS ===== */
+    doc.fontSize(14).text(`Total Price: ₹${booking.price}`, {
+      bold: true
+    });
+    doc.moveDown(0.5);
+
+    doc.fontSize(12).text(`Payment Status: ${booking.paymentStatus}`);
+    doc.text(`Booking Status: ${booking.status}`);
+
+    if (booking.status === "cancelled") {
+      doc.moveDown();
+      doc.text(`Cancelled By: ${booking.cancelledBy}`);
+      doc.text(`Refund Amount: ₹${booking.refundAmount}`);
+    }
+
+    doc.moveDown(2);
+
+    /* ===== FOOTER ===== */
+    doc
+      .fontSize(10)
+      .text(
+        "Thank you for booking with us.\nDrive safely!",
+        { align: "center" }
+      );
+
+    doc.end();
+  } catch (error) {
+    console.error("PDF generation error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to generate booking PDF"
+    });
+  }
 };
+
 
 /* ===================== STATUS ===================== */
 export const changeBookingStatus = async (req, res) => {
