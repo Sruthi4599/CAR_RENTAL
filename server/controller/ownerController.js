@@ -4,15 +4,19 @@ import Car from "../models/Car.js";
 import User from "../models/User.js";
 import fs from "fs";
 export const changeRoleToOwner = async (req, res) => {
-    try {
-        const { _id } = req.user;
-        await User.findByIdAndUpdate(_id, { role: "owner" })
-        res.json({ success: true, message: "Now you can list cars" })
-    } catch (error) {
-        console.log(error.message);
-        res.json({ success: false, message: error.message })
+    const user = await User.findById(req.user._id);
+
+    if (!user.roles.includes("owner")) {
+        user.roles.push("owner");
+        await user.save();
     }
-}
+
+    res.json({
+        success: true,
+        message: "Owner access enabled"
+    });
+};
+
 
 //API TO LIST CAR
 
@@ -105,26 +109,45 @@ export const deletecar = async (req, res) => {
     try {
         const { _id } = req.user;
         const { carId } = req.body;
-        const car = await Car.findById(carId)
 
-        //checking is car belongs to user
-        if (car.owner.toString() !== _id.toString()) {
-            res.json({ success: false, message: "Unauthorized" })
+        const car = await Car.findById(carId);
+
+        // ✅ CHECK CAR EXISTS
+        if (!car) {
+            return res.json({
+                success: false,
+                message: "Car not found"
+            });
         }
-        car.owner = null;
-        car.isAvailable = false;
 
-        await car.save()
-        res.json({ success: true, message: "Car Removed" })
+        // ✅ CHECK OWNER
+        if (car.owner.toString() !== _id.toString()) {
+            return res.json({
+                success: false,
+                message: "Unauthorized"
+            });
+        }
+
+        // ✅ PROPER DELETE (BEST PRACTICE)
+        await Car.findByIdAndDelete(carId);
+
+        res.json({
+            success: true,
+            message: "Car deleted successfully"
+        });
+
     } catch (error) {
-        console.log(error.message);
-        res.json({ success: false, message: error.message })
+        console.error("Delete car error:", error);
+        res.json({
+            success: false,
+            message: error.message
+        });
     }
-}
+};
 
 //API TO GET DASHBOARD DATA
 
-   export const getDashboardData = async (req, res) => {
+export const getDashboardData = async (req, res) => {
     try {
         // Logged in owner
         const ownerId = req.user._id;
@@ -189,9 +212,9 @@ export const deletecar = async (req, res) => {
 
 //API to update user image
 
-export const updateUserImage=async(req,res)=>{
+export const updateUserImage = async (req, res) => {
     try {
-        const {_id,role}=req.user;
+        const { _id, role } = req.user;
 
         const imageFile = req.file;
         //upload image to imagekit
@@ -213,8 +236,8 @@ export const updateUserImage=async(req,res)=>{
 
         const image = optimizedImageURL;
 
-        await User.findByIdAndUpdate(_id,{image});
-        res.json({success:true,message:"Image updated"})
+        await User.findByIdAndUpdate(_id, { image });
+        res.json({ success: true, message: "Image updated" })
     } catch (error) {
         console.log(error.message);
         res.json({ success: false, message: error.message })

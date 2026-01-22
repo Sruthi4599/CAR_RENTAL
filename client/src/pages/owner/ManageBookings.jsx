@@ -115,10 +115,11 @@ const ManageBookings = () => {
         subTitle='Track all customer bookings, approve or cancel requests, and manage booking statuses.'
       />
 
-      <div className='max-w-3xl w-full rounded-md overflow-hidden border border-borderColor mt-6'>
+      <div className='max-w-4xl w-full rounded-md overflow-hidden border border-borderColor mt-6'>
         <table className='w-full border-collapse text-left text-sm text-gray-600'>
           <thead className='text-gray-500'>
             <tr>
+              <th className='p-3 font-medium'>Customer</th>
               <th className='p-3 font-medium'>Car</th>
               <th className='p-3 font-medium max-md:hidden'>Date Range</th>
               <th className='p-3 font-medium'>Total</th>
@@ -130,13 +131,13 @@ const ManageBookings = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className='p-6 text-center'>
+                <td colSpan={6} className='p-6 text-center'>
                   Loading...
                 </td>
               </tr>
             ) : bookings.length === 0 ? (
               <tr>
-                <td colSpan={5} className='p-6 text-center'>
+                <td colSpan={6} className='p-6 text-center'>
                   No bookings found.
                 </td>
               </tr>
@@ -146,6 +147,13 @@ const ManageBookings = () => {
 
                 return (
                   <tr key={booking._id} className='border-t border-borderColor'>
+                    {/* CUSTOMER NAME */}
+                    <td className='p-3 font-medium'>
+                      {booking.customerDetails?.fullName || '—'}
+
+                    </td>
+
+                    {/* CAR DETAILS */}
                     <td className='p-3 flex items-center gap-3'>
                       <img
                         src={car.image || '/placeholder-car.png'}
@@ -157,22 +165,26 @@ const ManageBookings = () => {
                       </p>
                     </td>
 
+                    {/* DATE RANGE */}
                     <td className='p-3 max-md:hidden'>
                       {formatDate(booking.pickupDate)} to{' '}
                       {formatDate(booking.returnDate)}
                     </td>
 
+                    {/* TOTAL PRICE */}
                     <td className='p-3'>
                       {currency}
                       {booking.price}
                     </td>
 
+                    {/* PAYMENT STATUS */}
                     <td className='p-3 max-md:hidden'>
                       <span className='bg-gray-100 px-3 py-1 rounded-full text-xs'>
                         {booking.paymentStatus}
                       </span>
                     </td>
 
+                    {/* ACTIONS */}
                     <td className='p-3'>
                       {booking.status === 'pending' ? (
                         <select

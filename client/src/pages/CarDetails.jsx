@@ -38,6 +38,11 @@ const CarDetails = () => {
   const [disabledDates, setDisabledDates] = useState([])
   const [showPickup, setShowPickup] = useState(false)
   const [showReturn, setShowReturn] = useState(false)
+  // 🔹 NEW USER DETAILS STATE
+  const [fullName, setFullName] = useState('')
+  const [age, setAge] = useState('')
+  const [gender, setGender] = useState('')
+  const [bookingLocation, setBookingLocation] = useState('');
 
   // ✅ NEW STATE for dynamic price
   const [estimatedTotal, setEstimatedTotal] = useState(null)
@@ -81,29 +86,29 @@ const CarDetails = () => {
 
   /* -------- ✅ DYNAMIC PRICE CALCULATION (FIXED) -------- */
   useEffect(() => {
-  const fetchPrice = async () => {
-    if (!pickupDate || !returnDate || !car) {
-      setEstimatedTotal(null);
-      return;
-    }
-
-    try {
-      const { data } = await axios.post("/api/bookings/preview-price", {
-        carId: car._id,
-        pickupDate,
-        returnDate
-      });
-
-      if (data.success) {
-        setEstimatedTotal(data.pricing.totalPrice);
+    const fetchPrice = async () => {
+      if (!pickupDate || !returnDate || !car) {
+        setEstimatedTotal(null);
+        return;
       }
-    } catch (err) {
-      console.error("Price fetch failed");
-    }
-  };
 
-  fetchPrice();
-}, [pickupDate, returnDate, car]);
+      try {
+        const { data } = await axios.post("/api/bookings/preview-price", {
+          carId: car._id,
+          pickupDate,
+          returnDate
+        });
+
+        if (data.success) {
+          setEstimatedTotal(data.pricing.totalPrice);
+        }
+      } catch (err) {
+        console.error("Price fetch failed");
+      }
+    };
+
+    fetchPrice();
+  }, [pickupDate, returnDate, car]);
 
 
   return car ? (
@@ -187,6 +192,56 @@ const CarDetails = () => {
           </p>
 
           <hr />
+          {/* USER DETAILS */}
+          <div>
+            <label>Full Name</label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Enter your name"
+              className="border px-3 py-2 rounded-lg w-full"
+              required
+            />
+          </div>
+
+          <div>
+            <label>Age</label>
+            <input
+              type="number"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              placeholder="Enter age"
+              className="border px-3 py-2 rounded-lg w-full"
+              required
+            />
+          </div>
+
+          <div>
+            <label>Gender</label>
+            <select
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              className="border px-3 py-2 rounded-lg w-full"
+              required
+            >
+              <option value="">Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label>Booking Location (City / Area)</label>
+            <input
+              type="text"
+              value={bookingLocation}
+              onChange={(e) => setBookingLocation(e.target.value)}
+              placeholder="Enter your city or area"
+              className="border px-3 py-2 rounded-lg w-full"
+              required
+            />
+          </div>
 
           {/* PICKUP DATE */}
           <div className='relative'>
@@ -235,7 +290,7 @@ const CarDetails = () => {
                 <DayPicker
                   mode='single'
                   disabled={[
-                     { before: new Date(fromYMD(pickupDate).getTime() - 1) },
+                    { before: new Date(fromYMD(pickupDate).getTime() - 1) },
                     ...disabledDates
                   ]}
                   onSelect={(date) => {
@@ -271,8 +326,16 @@ const CarDetails = () => {
                     pickupDate,
                     returnDate,
                     price: estimatedTotal,
+                    customerDetails: {
+                      fullName,
+                      age,
+                      gender,
+                      location: bookingLocation
+                    },
                     payment: paymentData
                   })
+
+
 
                   if (data.success) {
                     toast.success('Payment successful & booking confirmed ✅')

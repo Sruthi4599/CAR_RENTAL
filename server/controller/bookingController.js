@@ -18,7 +18,19 @@ const ensureMinimumOneDay = (pickupDate, returnDate) => {
 /* ===================== CREATE BOOKING (FIXED) ===================== */
 export const createBooking = async (req, res) => {
   try {
-    const { carId, pickupDate, returnDate } = req.body;
+    const { carId, pickupDate, returnDate, customerDetails } = req.body;
+    if (
+      !customerDetails ||
+      !customerDetails.fullName ||
+      !customerDetails.age ||
+      !customerDetails.gender||
+      !customerDetails.location
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Customer name, age and gender are required"
+      });
+    }
 
     if (!carId || !pickupDate || !returnDate) {
       return res.status(400).json({
@@ -44,11 +56,11 @@ export const createBooking = async (req, res) => {
 
     /* 🔐 HARD BLOCK: DATE OVERLAP CHECK */
     const conflict = await Booking.findOne({
-    car: carId,
-    status: { $ne: "cancelled" },
-    pickupDate: { $lte: ret },
-    returnDate: { $gte: pickup }
-  });
+      car: carId,
+      status: { $ne: "cancelled" },
+      pickupDate: { $lte: ret },
+      returnDate: { $gte: pickup }
+    });
 
     if (conflict) {
       return res.status(409).json({
@@ -72,9 +84,11 @@ export const createBooking = async (req, res) => {
       pickupDate: pickup,
       returnDate: ret,
       price: pricing.totalPrice,
-      status: "pending",        // 🔴 FIXED
+      customerDetails,   // ✅ NEW
+      status: "pending",
       paymentStatus: "PAID"
     });
+
 
     res.json({ success: true, booking });
 
@@ -151,9 +165,9 @@ export const cancelBooking = async (req, res) => {
   const refundPercent = isOwner
     ? 1
     : getRefundPercentage(
-        (new Date(booking.pickupDate) - new Date()) /
-          (1000 * 60 * 60)
-      );
+      (new Date(booking.pickupDate) - new Date()) /
+      (1000 * 60 * 60)
+    );
 
   booking.status = "cancelled";
   booking.refundAmount = booking.price * refundPercent;
@@ -271,11 +285,23 @@ export const generateBookingPDF = async (req, res) => {
     doc.moveDown(2);
 
     /* ===== BOOKING DETAILS ===== */
+    /* ===== BOOKING DETAILS ===== */
     doc.fontSize(12);
     doc.text(`Booking ID: ${booking._id}`);
-    doc.text(`Customer Name: ${booking.user.name}`);
+    doc.text(
+  `Booked By (Account): ${booking.user?.name || "N/A"}`
+);
+
+doc.text(
+  `Booking For: ${booking.customerDetails?.fullName || "N/A"}`
+);
+
+    doc.text(`Customer Age: ${booking.customerDetails.age}`);
+    doc.text(`Customer Gender: ${booking.customerDetails.gender}`);
+    doc.text(`Booking Location: ${booking.customerDetails.location}`); 
     doc.text(`Customer Email: ${booking.user.email}`);
     doc.moveDown();
+
 
     /* ===== CAR DETAILS ===== */
     doc.text(

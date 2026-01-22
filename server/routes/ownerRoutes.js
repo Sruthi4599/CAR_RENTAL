@@ -1,5 +1,6 @@
 import express from "express";
 import { protect } from "../middleware/auth.js";
+import requireRole from "../middleware/requireRole.js";
 import {
   addCar,
   changeRoleToOwner,

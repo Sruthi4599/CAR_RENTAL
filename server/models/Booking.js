@@ -35,6 +35,29 @@ const bookingSchema = new mongoose.Schema(
         message: "Return date must be after pickup date"
       }
     },
+    customerDetails: {
+      fullName: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      age: {
+        type: Number,
+        required: true,
+        min: 18
+      },
+      gender: {
+        type: String,
+        enum: ["Male", "Female", "Other"],
+        required: true
+      },
+      location: {
+        type: String,
+        required: true,
+        trim: true
+      }
+
+    },
 
     price: {
       type: Number,
