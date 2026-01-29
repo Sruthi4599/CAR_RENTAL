@@ -18,10 +18,22 @@ const app = express();
 await connectDB();
 
 // ✅ MIDDLEWARE (ORDER MATTERS)
+const allowedOrigins = [
+  "https://onlinecarrental.vercel.app", // production
+   // preview you opened
+];
+
 app.use(cors({
-  origin: "https://onlinecarrental.vercel.app",
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true
 }));
+
 app.use(express.json());
 
 // Test Route
