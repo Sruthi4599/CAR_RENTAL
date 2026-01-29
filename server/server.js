@@ -25,14 +25,19 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
+    // allow requests with no origin (Postman, server-to-server)
+    if (!origin) return callback(null, true);
+
+    // allow ANY Vercel deployment of your frontend
+    if (origin.endsWith(".vercel.app")) {
+      return callback(null, true);
     }
+
+    callback(new Error("Not allowed by CORS"));
   },
   credentials: true
 }));
+
 
 app.use(express.json());
 
