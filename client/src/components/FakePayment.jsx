@@ -1,11 +1,13 @@
-import axios from "axios";
 import { useState } from "react";
+import { useAppContext } from "../context/AppContext";  // ✅ import context
 
 const FakePayment = ({ amount, userId, carId, onSuccess }) => {
+  const { axios } = useAppContext();   // ✅ use axios from context
   const [loading, setLoading] = useState(false);
 
   const handlePayment = async () => {
     setLoading(true);
+
     try {
       const res = await axios.post(
         "/api/payment/fake-payment",
@@ -14,16 +16,14 @@ const FakePayment = ({ amount, userId, carId, onSuccess }) => {
 
       alert("Payment Successful ✅");
 
-      // ✅ IMPORTANT FIX: Always send status: "PAID"
+      // Send payment status to booking creation
       onSuccess({
         ...res.data,
         status: "PAID"
       });
 
     } catch (err) {
-      console.error("❌ Payment error full:", err);
-      console.error("❌ Response:", err.response);
-      console.error("❌ Message:", err.message);
+      console.error("❌ Payment error:", err);
 
       alert(
         err.response?.data?.message ||
@@ -39,13 +39,7 @@ const FakePayment = ({ amount, userId, carId, onSuccess }) => {
     <button
       onClick={handlePayment}
       disabled={loading}
-      style={{
-        padding: "10px 20px",
-        background: "#16a34a",
-        color: "white",
-        borderRadius: "6px",
-        width: "100%"
-      }}
+      className="px-4 py-2 bg-green-600 text-white rounded-md w-full"
     >
       {loading ? "Processing..." : `Pay ₹${amount}`}
     </button>
