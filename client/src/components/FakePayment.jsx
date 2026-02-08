@@ -8,9 +8,9 @@ const FakePayment = ({ amount, userId, carId, onSuccess }) => {
     setLoading(true);
     try {
       const res = await axios.post(
-  "http://localhost:3000/api/payment/fake-payment",
-  { amount, userId, carId }
-);
+        "/api/payment/fake-payment",
+        { amount, userId, carId }
+      );
 
       alert("Payment Successful ✅");
 
