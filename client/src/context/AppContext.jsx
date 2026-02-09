@@ -3,8 +3,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
-
+axios.defaults.baseURL = "https://car-rental-iybv.onrender.com";
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
@@ -108,5 +107,5 @@ export const AppProvider = ({ children }) => {
     </AppContext.Provider>
   );
 };
-
+console.log("GLOBAL AXIOS BASE:", axios.defaults.baseURL);
 export const useAppContext = () => useContext(AppContext);
