@@ -9,12 +9,10 @@ const FakePayment = ({ amount, userId, carId, onSuccess }) => {
     setLoading(true);
 
     try {
-      delete axios.defaults.headers.common["Authorization"];
       const res = await axios.post(
-        "/api/payment/fake-payment",
-        { amount, userId, carId }
-      );
-
+  "https://car-rental-iybv.onrender.com/api/payment/fake-payment",
+  { amount, userId, carId }
+);
       alert("Payment Successful ✅");
 
       // Send payment status to booking creation
