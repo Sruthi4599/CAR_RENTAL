@@ -19,17 +19,25 @@ await connectDB();
 
 // ✅ MIDDLEWARE (ORDER MATTERS)
 const allowedOrigins = [
-  "https://onlinecarrental.vercel.app", // production
-   // preview you opened
+  "https://onlinecarrental.vercel.app",
 ];
 
-app.use(cors({
-  origin: true,
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
+};
 
+// 🔥 THIS HANDLES PREFLIGHT AUTOMATICALLY IN EXPRESS 5
+app.use(cors(corsOptions));
 
 
 app.use(express.json());
@@ -46,7 +54,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/payment", paymentRoutes);
 
 // Server
-const PORT = process.env.PORT || 3000; // ✅ MATCH FRONTEND
+const PORT = process.env.PORT || 3000;// ✅ MATCH FRONTEND
 app.listen(PORT, () =>
   console.log(`Server running on port ${PORT}`)
 );
