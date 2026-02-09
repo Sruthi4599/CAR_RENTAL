@@ -11,53 +11,25 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 
-// Initialize Express App
 const app = express();
 
 // Connect Database
 await connectDB();
-app.use((req, res, next) => {
-  if (req.method === "OPTIONS") {
-    res.header("Access-Control-Allow-Origin", req.headers.origin);
-    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.header("Access-Control-Allow-Credentials", "true");
-    return res.sendStatus(204);
-  }
-  next();
-});
-// ✅ MIDDLEWARE (ORDER MATTERS)
-const allowedOrigins = [
-  "https://onlinecarrental.vercel.app",
-];
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    // allow server-to-server & preflight
-    if (!origin) return callback(null, true);
-
-    // allow vercel production + previews
-    if (
-      origin === "https://onlinecarrental.vercel.app" ||
-      origin.endsWith(".vercel.app")
-    ) {
-      return callback(null, true);
-    }
-
-    callback(new Error("Not allowed by CORS"));
-  },
-  credentials: true,
+// ✅ SIMPLE CORS (TEMPORARY, SAFE FOR DEBUGGING)
+app.use(cors({
+  origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-};
-// 🔥 THIS HANDLES PREFLIGHT AUTOMATICALLY IN EXPRESS 5
-app.use(cors(corsOptions));
+}));
 
-
+// ✅ JSON parser
 app.use(express.json());
 
 // Test Route
-app.get("/", (req, res) => res.send("Server is running"));
+app.get("/", (req, res) => {
+  res.send("Server is running");
+});
 
 // Routes
 app.use("/api/users", userRouter);
@@ -68,7 +40,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/payment", paymentRoutes);
 
 // Server
-const PORT = process.env.PORT || 3000;// ✅ MATCH FRONTEND
-app.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}`)
-);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
