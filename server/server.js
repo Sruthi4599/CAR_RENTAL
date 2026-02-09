@@ -18,7 +18,7 @@ await connectDB();
 
 // ✅ SIMPLE CORS (TEMPORARY, SAFE FOR DEBUGGING)
 app.use(cors({
-  origin: "*",
+  origin: "https://onlinecarrental.vercel.app",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
