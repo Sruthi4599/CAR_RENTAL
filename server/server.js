@@ -23,19 +23,24 @@ const allowedOrigins = [
 ];
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
+  origin: (origin, callback) => {
+    // allow server-to-server & preflight
+    if (!origin) return callback(null, true);
+
+    // allow vercel production + previews
+    if (
+      origin === "https://onlinecarrental.vercel.app" ||
+      origin.endsWith(".vercel.app")
+    ) {
+      return callback(null, true);
     }
+
+    callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  optionsSuccessStatus: 204,
 };
-
 // 🔥 THIS HANDLES PREFLIGHT AUTOMATICALLY IN EXPRESS 5
 app.use(cors(corsOptions));
 
