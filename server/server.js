@@ -17,11 +17,7 @@ const app = express();
 await connectDB();
 
 // ✅ SIMPLE CORS (TEMPORARY, SAFE FOR DEBUGGING)
-app.use(cors({
-  origin: "https://onlinecarrental.vercel.app",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+app.use(cors());
 
 // ✅ JSON parser
 app.use(express.json());
