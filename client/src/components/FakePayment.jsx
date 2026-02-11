@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAppContext } from "../context/AppContext";  // ✅ import context
 
 const FakePayment = ({ amount, userId, carId, onSuccess }) => {
+  console.log("Payment sending:", { amount, userId, carId });
   const { axios } = useAppContext();   // ✅ use axios from context
   const [loading, setLoading] = useState(false);
 
