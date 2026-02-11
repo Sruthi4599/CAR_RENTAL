@@ -1,7 +1,8 @@
 import { useState } from "react";
-import axios from "axios";
+import { useAppContext } from "../context/AppContext"; // ✅ use global axios
 
 export default function Chatbot() {
+  const { axios } = useAppContext(); // ✅ get axios from context
   const [open, setOpen] = useState(false);
   const [msg, setMsg] = useState("");
   const [chat, setChat] = useState([]);
@@ -12,7 +13,8 @@ export default function Chatbot() {
     try {
       console.log("Sending:", msg);
 
-      const res = await axios.post("http://localhost:3000/api/chat", {
+      // ✅ NO localhost
+      const res = await axios.post("/api/chat", {
         message: msg,
       });
 
@@ -24,18 +26,18 @@ export default function Chatbot() {
       setMsg("");
     } catch (error) {
       console.error("Chat error:", error);
-      alert("Server not responding");
+      alert(
+        error.response?.data?.message ||
+        error.message ||
+        "Server not responding"
+      );
     }
   };
-
 
   return (
     <>
       {/* Floating Button */}
-      <button
-        onClick={() => setOpen(!open)}
-        style={styles.fab}
-      >
+      <button onClick={() => setOpen(!open)} style={styles.fab}>
         🗨️
       </button>
 
@@ -44,7 +46,9 @@ export default function Chatbot() {
         <div style={styles.chatbox}>
           <div style={styles.header}>
             Car Assistant
-            <span onClick={() => setOpen(false)} style={styles.close}>✖</span>
+            <span onClick={() => setOpen(false)} style={styles.close}>
+              ✖
+            </span>
           </div>
 
           <div style={styles.messages}>
@@ -79,17 +83,16 @@ const styles = {
     bottom: "20px",
     right: "20px",
     borderRadius: "50%",
-    width: "65px",        // ⬆️ bigger
+    width: "65px",
     height: "65px",
-    fontSize: "30px",     // ⬆️ bigger icon
-    backgroundColor: "#111", // 🔥 dark
+    fontSize: "30px",
+    backgroundColor: "#111",
     color: "#fff",
     border: "none",
     cursor: "pointer",
     boxShadow: "0 8px 20px rgba(0,0,0,0.4)",
     zIndex: 9999,
   },
-
   chatbox: {
     position: "fixed",
     bottom: "80px",
