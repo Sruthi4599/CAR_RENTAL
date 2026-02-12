@@ -102,7 +102,7 @@ const ExtendBookingModal = ({ booking, onClose, onExtended }) => {
         )}
 
         {/* ACTION */}
-        {extraAmount > 0 ? (
+        {extraAmount > 0 && user? (
           <FakePayment
   amount={extraAmount}
   userId={user?._id}
