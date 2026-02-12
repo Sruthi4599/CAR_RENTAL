@@ -6,7 +6,7 @@ import FakePayment from "./FakePayment";
 import toast from "react-hot-toast";
 
 const ExtendBookingModal = ({ booking, onClose, onExtended }) => {
-  const { axios, currency } = useAppContext();
+  const { axios, currency , user} = useAppContext();
 
   const [newReturnDate, setNewReturnDate] = useState(
     new Date(booking.returnDate)
@@ -105,8 +105,8 @@ const ExtendBookingModal = ({ booking, onClose, onExtended }) => {
         {extraAmount > 0 ? (
           <FakePayment
   amount={extraAmount}
-  userId={user._id}
-  carId={booking.car._id}
+  userId={user?._id}
+  carId={booking.car?._id}
   onSuccess={(paymentData) => handleExtend(paymentData)}
 />
         ) : (
