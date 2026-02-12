@@ -105,7 +105,7 @@ const ExtendBookingModal = ({ booking, onClose, onExtended }) => {
         {extraAmount > 0 ? (
           <FakePayment
   amount={extraAmount}
-  userId={booking.user} 
+  userId={user._id}
   carId={booking.car._id}
   onSuccess={(paymentData) => handleExtend(paymentData)}
 />
