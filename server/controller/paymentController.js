@@ -7,7 +7,7 @@ export const fakePayment = async (req, res) => {
     console.log("Headers:", req.headers);
     
     const { amount, userId, carId } = req.body;
-    
+    console.log(amount +  "," + userId + "," + carId);
     // Validate required fields
     if (!amount || !userId || !carId) {
       console.log("❌ Missing fields:", { amount, userId, carId });
