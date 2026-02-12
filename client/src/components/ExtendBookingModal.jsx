@@ -100,9 +100,7 @@ const ExtendBookingModal = ({ booking, onClose, onExtended }) => {
             </span>
           </p>
         )}
-<p style={{ fontSize: "12px", color: "red" }}>
-  Debug → userId: {user?._id || "UNDEFINED"} | carId: {booking.car?._id || "UNDEFINED"}
-</p>
+
         {/* ACTION */}
         {extraAmount > 0 && user? (
           
