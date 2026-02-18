@@ -39,6 +39,13 @@ export const createBooking = async (req, res) => {
       });
     }
 
+    if (customerDetails.age < 18) {
+  return res.status(400).json({
+    success: false,
+    message: "You must be at least 18 years old to book a car."
+  });
+}
+
     const pickup = new Date(pickupDate);
     const ret = new Date(returnDate);
 
@@ -86,7 +93,7 @@ export const createBooking = async (req, res) => {
       price: pricing.totalPrice,
       customerDetails,   // ✅ NEW
       status: "pending",
-      paymentStatus: "PAID"
+      paymentStatus: "pending"
     });
 
 
