@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { useAppContext } from "../context/AppContext";  // ✅ import context
+import { useAppContext } from "../context/AppContext";
 
 const FakePayment = ({ amount, userId, carId, onSuccess }) => {
-  console.log("Payment sending:", { amount, userId, carId });
-  const { axios } = useAppContext();   // ✅ use axios from context
+  const { axios } = useAppContext();
   const [loading, setLoading] = useState(false);
 
   const handlePayment = async () => {
@@ -11,11 +10,11 @@ const FakePayment = ({ amount, userId, carId, onSuccess }) => {
 
     try {
       const res = await axios.post(
-  "https://car-rental-iybv.onrender.com/api/payment/fake-payment",
-  { amount, userId, carId }
-);
+        "https://car-rental-iybv.onrender.com/api/payment/fake-payment",
+        { amount, userId, carId }
+      );
 
-      // Send payment status to booking creation
+      // ❌ No success alert here
       onSuccess({
         ...res.data,
         status: "PAID"
