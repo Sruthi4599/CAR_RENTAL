@@ -3,7 +3,7 @@ import Booking from "../models/Booking.js";
 import Car from "../models/Car.js";
 import User from "../models/User.js";
 import fs from "fs";
-
+console.log("NEW ADD CAR CONTROLLER RUNNING");
 /* ================= CHANGE ROLE TO OWNER ================= */
 export const changeRoleToOwner = async (req, res) => {
   try {
