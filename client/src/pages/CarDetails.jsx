@@ -46,7 +46,7 @@ const CarDetails = () => {
 
   // ✅ NEW STATE for dynamic price
   const [estimatedTotal, setEstimatedTotal] = useState(null)
-
+const [showPayment, setShowPayment] = useState(false);
   const currency = import.meta.env.VITE_CURRENCY
 
   /* -------- LOAD CAR -------- */
@@ -110,7 +110,24 @@ const CarDetails = () => {
     fetchPrice();
   }, [pickupDate, returnDate, car]);
 
+  const handlePaymentClick = () => {
+  if (!fullName || !age || !gender || !bookingLocation) {
+    toast.error("Please fill all details");
+    return false;
+  }
 
+  if (Number(age) < 18) {
+    toast.error("You must be at least 18 years old to book a car.");
+    return false;
+  }
+
+  if (!pickupDate || !returnDate) {
+    toast.error("Please select pickup and return dates");
+    return false;
+  }
+
+  return true;
+};
   return car ? (
     <div className='px-6 md:px-16 lg:px-24 xl:px-32 mt-16'>
       {/* BACK */}
@@ -290,9 +307,9 @@ const CarDetails = () => {
                 <DayPicker
                   mode='single'
                   disabled={[
-                    { before: new Date(fromYMD(pickupDate).getTime() - 1) },
-                    ...disabledDates
-                  ]}
+  { before: fromYMD(pickupDate) },
+  ...disabledDates
+]}
                   onSelect={(date) => {
                     if (!date) return
                     setReturnDate(toYMD(date))
@@ -314,43 +331,58 @@ const CarDetails = () => {
           )}
 
           {/* PAYMENT */}
-          {estimatedTotal && (
-            <FakePayment
-              amount={estimatedTotal}
-              userId={user?._id}
-              carId={car._id}
-              onSuccess={async (paymentData) => {
-                try {
-                  const { data } = await axios.post('/api/bookings/create', {
-                    carId: car._id,
-                    pickupDate,
-                    returnDate,
-                    price: estimatedTotal,
-                    customerDetails: {
-                      fullName,
-                      age,
-                      gender,
-                      location: bookingLocation
-                    },
-                    payment: paymentData
-                  })
+          {/* PAYMENT BUTTON */}
+{estimatedTotal && !showPayment && (
+  <button
+    type="button"
+    onClick={() => {
+      const valid = handlePaymentClick();
+      if (!valid) return;
 
+      setShowPayment(true);
+    }}
+    className="w-full bg-primary text-white py-2 rounded-lg"
+  >
+    Proceed to Payment
+  </button>
+)}
 
+{/* SHOW PAYMENT COMPONENT AFTER VALIDATION */}
+{estimatedTotal && showPayment && (
+  <FakePayment
+    amount={estimatedTotal}
+    userId={user?._id}
+    carId={car._id}
+    onSuccess={async (paymentData) => {
+      try {
+        const { data } = await axios.post('/api/bookings/create', {
+          carId: car._id,
+          pickupDate,
+          returnDate,
+          price: estimatedTotal,
+          customerDetails: {
+            fullName,
+            age,
+            gender,
+            location: bookingLocation
+          },
+          payment: paymentData
+        });
 
-                  if (data.success) {
-                    toast.success('Payment successful & booking confirmed ✅')
-                    navigate('/my-bookings')
-                  } else {
-                    toast.error(data.message || 'Booking failed')
-                  }
-                } catch (error) {
-                  toast.error(
-                    error.response?.data?.message || 'Booking failed'
-                  )
-                }
-              }}
-            />
-          )}
+        if (data.success) {
+          toast.success('Payment successful & booking confirmed ✅');
+          navigate('/my-bookings');
+        } else {
+          toast.error(data.message || 'Booking failed');
+        }
+      } catch (error) {
+        toast.error(
+          error.response?.data?.message || 'Booking failed'
+        );
+      }
+    }}
+  />
+)}
         </form>
       </div>
     </div>
