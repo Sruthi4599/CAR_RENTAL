@@ -4,6 +4,24 @@ import Car from "../models/Car.js";
 import User from "../models/User.js";
 import fs from "fs";
 
+/* ================= CHANGE ROLE TO OWNER ================= */
+export const changeRoleToOwner = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user.roles.includes("owner")) {
+      user.roles.push("owner");
+      await user.save();
+    }
+
+    res.json({
+      success: true,
+      message: "Owner access enabled"
+    });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+};
 
 /* ================= ADD CAR ================= */
 export const addCar = async (req, res) => {
