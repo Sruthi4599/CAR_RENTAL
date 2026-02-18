@@ -366,6 +366,11 @@ const [showPayment, setShowPayment] = useState(false);
     userId={user?._id}
     carId={car._id}
     onSuccess={async (paymentData) => {
+      if (Number(age) < 18) {
+    toast.error("You must be at least 18 years old to book a car.");
+    setShowPayment(false);
+    return;
+  }
       try {
         const { data } = await axios.post('/api/bookings/create', {
           carId: car._id,

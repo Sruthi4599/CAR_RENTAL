@@ -16,7 +16,13 @@ export const fakePayment = async (req, res) => {
         message: "Missing required fields: amount, userId, or carId"
       });
     }
-    
+    if (Number(age) < 18) {
+      return res.status(400).json({
+        success: false,
+        message: "You must be at least 18 years old to make payment"
+      });
+    }
+
     // Generate a fake transaction ID
     const transactionId = `TXN_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
     
