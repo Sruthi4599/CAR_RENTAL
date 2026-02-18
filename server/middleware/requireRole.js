@@ -1,6 +1,6 @@
 const requireRole = (role) => {
   return (req, res, next) => {
-    if (req.user.role !== role) {
+    if (!req.user.roles.includes(role)) {
       return res.status(403).json({
         success: false,
         message: "Access denied"
@@ -9,3 +9,5 @@ const requireRole = (role) => {
     next();
   };
 };
+
+export default requireRole;
