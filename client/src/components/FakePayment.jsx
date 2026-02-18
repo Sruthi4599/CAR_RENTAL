@@ -21,12 +21,12 @@ const FakePayment = ({ amount, userId, carId, onSuccess }) => {
       });
 
     } catch (err) {
-      console.error("❌ Payment error:", err);
+      console.error("Payment error:", err);
 
       alert(
         err.response?.data?.message ||
         err.message ||
-        "Payment Failed ❌"
+        "Payment Failed "
       );
     } finally {
       setLoading(false);
