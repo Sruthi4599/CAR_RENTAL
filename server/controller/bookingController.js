@@ -178,7 +178,7 @@ export const cancelBooking = async (req, res) => {
 
   booking.status = "cancelled";
   booking.refundAmount = booking.price * refundPercent;
-  booking.paymentStatus = refundPercent > 0 ? "REFUNDED" : "PAID";
+  booking.paymentStatus = refundPercent > 0 ? "refunded" : "paid";
   booking.cancelledBy = isOwner ? "OWNER" : "USER";
   booking.cancelledAt = new Date();
 
