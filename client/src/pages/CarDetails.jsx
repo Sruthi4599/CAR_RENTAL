@@ -43,7 +43,7 @@ const CarDetails = () => {
   const [age, setAge] = useState('')
   const [gender, setGender] = useState('')
   const [bookingLocation, setBookingLocation] = useState('');
-
+const isAgeInvalid = age && Number(age) < 18;
   // ✅ NEW STATE for dynamic price
   const [estimatedTotal, setEstimatedTotal] = useState(null)
 const [showPayment, setShowPayment] = useState(false);
@@ -223,16 +223,24 @@ const [showPayment, setShowPayment] = useState(false);
           </div>
 
           <div>
-            <label>Age</label>
-            <input
-              type="number"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              placeholder="Enter age"
-              className="border px-3 py-2 rounded-lg w-full"
-              required
-            />
-          </div>
+  <label>Age</label>
+  <input
+    type="number"
+    value={age}
+    onChange={(e) => setAge(e.target.value)}
+    placeholder="Enter age"
+    className={`border px-3 py-2 rounded-lg w-full ${
+      isAgeInvalid ? "border-red-500" : ""
+    }`}
+    required
+  />
+
+  {isAgeInvalid && (
+    <p className="text-red-500 text-sm mt-1">
+      Age must be 18 or above to book a car.
+    </p>
+  )}
+</div>
 
           <div>
             <label>Gender</label>
@@ -335,6 +343,7 @@ const [showPayment, setShowPayment] = useState(false);
 {estimatedTotal && !showPayment && (
   <button
     type="button"
+    disabled={isAgeInvalid}
     onClick={() => {
       const valid = handlePaymentClick();
       if (!valid) return;
