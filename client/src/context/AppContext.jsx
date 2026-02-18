@@ -24,7 +24,7 @@ export const AppProvider = ({ children }) => {
       const { data } = await axios.get("/api/users/data");
       if (data.success) {
         setUser(data.user);
-        setIsOwner(data.user.roles?.includes("owner"));
+        setIsOwner(true);
       } else {
         setUser(null);
         setIsOwner(false);
