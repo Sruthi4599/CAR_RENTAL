@@ -60,19 +60,25 @@ export const AppProvider = ({ children }) => {
   };
 
   // 🔁 Read token from localStorage on first load
- useEffect(() => {
+ // Load token from storage
+useEffect(() => {
   const tokenFromStorage = localStorage.getItem("token");
-
   if (tokenFromStorage) {
     setToken(tokenFromStorage);
-
-    axios.defaults.headers.common["Authorization"] =
-      `Bearer ${tokenFromStorage}`;
-
-    fetchUser();
-    fetchCars();
   }
 }, []);
+
+// Sync axios header whenever token changes
+useEffect(() => {
+  if (token) {
+    axios.defaults.headers.common["Authorization"] =
+      `Bearer ${token}`;
+    fetchUser();
+    fetchCars();
+  } else {
+    delete axios.defaults.headers.common["Authorization"];
+  }
+}, [token]);
 
   const value = {
     navigate,
