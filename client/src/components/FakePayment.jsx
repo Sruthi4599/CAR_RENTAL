@@ -14,7 +14,6 @@ const FakePayment = ({ amount, userId, carId, onSuccess }) => {
   "https://car-rental-iybv.onrender.com/api/payment/fake-payment",
   { amount, userId, carId }
 );
-      alert("Payment Successful ✅");
 
       // Send payment status to booking creation
       onSuccess({
