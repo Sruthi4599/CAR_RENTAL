@@ -43,7 +43,7 @@ const CarDetails = () => {
   const [age, setAge] = useState('')
   const [gender, setGender] = useState('')
   const [bookingLocation, setBookingLocation] = useState('');
-const isAgeInvalid = age && Number(age) < 18;
+const isAgeInvalid = age !== '' && Number(age) < 18;
   // ✅ NEW STATE for dynamic price
   const [estimatedTotal, setEstimatedTotal] = useState(null)
 const [showPayment, setShowPayment] = useState(false);
@@ -350,12 +350,15 @@ const [showPayment, setShowPayment] = useState(false);
 
       setShowPayment(true);
     }}
-    className="w-full bg-primary text-white py-2 rounded-lg"
+    className={`w-full py-2 rounded-lg text-white ${
+      isAgeInvalid
+        ? "bg-gray-400 cursor-not-allowed"
+        : "bg-primary"
+    }`}
   >
     Proceed to Payment
   </button>
 )}
-
 {/* SHOW PAYMENT COMPONENT AFTER VALIDATION */}
 {estimatedTotal && showPayment && (
   <FakePayment
