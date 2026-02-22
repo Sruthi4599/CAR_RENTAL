@@ -113,6 +113,8 @@ try {
 });
 
 const licenseDocument = result.url;
+const expiryTime = new Date();
+    expiryTime.setHours(expiryTime.getHours() + 5);
     const booking = await Booking.create({
       user: req.user._id,
       owner: car.owner,
@@ -123,8 +125,11 @@ const licenseDocument = result.url;
       customerDetails,   // ✅ NEW
       licenseDocument,
       status: "pending",
-      paymentStatus: "paid"
+      paymentStatus: "paid",
+      expiresAt: expiryTime
     });
+    
+
 
 
     res.json({ success: true, booking });

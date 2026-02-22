@@ -23,7 +23,7 @@ const Dashboard = () => {
     { title: "Total Bookings", value: data.totalBookings, icon: assets.listIconColored },
     { title: "Pending", value: data.pendingBookings, icon: assets.cautionIconColored },
     { title: "Confirmed", value: data.completedBookings, icon: assets.listIconColored },
-    { title: "Cancelled", value: data.cancelledBookings, icon: assets.cautionIconColored },
+     { title: "Cancelled", value: data.cancelledBookings, icon: assets.cautionIconColored },
   ];
 
   const fetchDashboardData = async () => {

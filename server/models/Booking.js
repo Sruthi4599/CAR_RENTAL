@@ -91,9 +91,12 @@ const bookingSchema = new mongoose.Schema(
 
     cancelledBy: {
       type: String,
-      enum: ["USER", "OWNER"],
+      enum: ["USER", "OWNER", "SYSTEM"],
       default: null
     },
+    expiresAt: {
+  type: Date
+},
 
     cancelledAt: Date
   },

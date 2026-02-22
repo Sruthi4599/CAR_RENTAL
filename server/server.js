@@ -2,7 +2,8 @@ import express from "express";
 import "dotenv/config";
 import cors from "cors";
 import connectDB from "./configs/db.js";
-
+import cron from "node-cron";
+import { autoCancelPendingBookings } from "./utils/autoCancelBookings.js";
 // Routes
 import userRouter from "./routes/userRoutes.js";
 import ownerRouter from "./routes/ownerRoutes.js";
@@ -38,7 +39,10 @@ app.use("/api/bookings", bookingRouter);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/payment", paymentRoutes);
-
+cron.schedule("*/5 * * * *", async () => {
+  console.log("Checking expired bookings...");
+  await autoCancelPendingBookings();
+});
 // Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
