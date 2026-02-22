@@ -42,6 +42,7 @@ const CarDetails = () => {
   const [fullName, setFullName] = useState('')
   const [age, setAge] = useState('')
   const [gender, setGender] = useState('')
+  const [contact, setContact] = useState('')
   const [bookingLocation, setBookingLocation] = useState('');
   const [license, setLicense] = useState(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -161,6 +162,11 @@ const [showPayment, setShowPayment] = useState(false);
               <h1 className='text-3xl font-bold'>
                 {car.brand} {car.model}
               </h1>
+                {car.ownerPhone && (
+                  <p className='text-gray-500 mt-1'>
+                    📞 Contact: {car.ownerPhone}
+                  </p>
+                )}
               <p className='text-gray-500 text-lg'>
                 {car.category} • {car.year}
               </p>
@@ -275,6 +281,24 @@ const [showPayment, setShowPayment] = useState(false);
               className="border px-3 py-2 rounded-lg w-full"
               required
             />
+          </div>
+          <div>
+            <label>Contact Number</label>
+            <input
+              type="tel"
+              value={contact}
+              onChange={(e) => setContact(e.target.value)}
+              placeholder="Enter your contact number"
+              className="border px-3 py-2 rounded-lg w-full"
+              maxLength="10"
+              required
+            />
+
+            {contact && !/^[0-9]{10}$/.test(contact) && (
+              <p className="text-red-500 text-sm mt-1">
+                Contact number must be 10 digits.
+              </p>
+            )}
           </div>
 
           {/* PICKUP DATE */}
@@ -422,29 +446,46 @@ const [showPayment, setShowPayment] = useState(false);
     setShowPayment(false);
     return;
   }
-      try {
-        const formData = new FormData();
+    if (!/^[0-9]{10}$/.test(contact)) {
+    toast.error("Enter a valid 10-digit contact number");
+    return false;
+  }
 
-formData.append("carId", car._id);
-formData.append("pickupDate", pickupDate);
-formData.append("returnDate", returnDate);
+  
+     try {
+  const formData = new FormData();
 
-formData.append(
-  "customerDetails",
-  JSON.stringify({
-    fullName,
-    age,
-    gender,
-    location: bookingLocation
-  })
-);
+  formData.append("carId", car._id);
+  formData.append("pickupDate", pickupDate);
+  formData.append("returnDate", returnDate);
+  formData.append("price", estimatedTotal);
 
-formData.append("license", license);
+  formData.append(
+    "customerDetails",
+    JSON.stringify({
+      fullName,
+      age,
+      gender,
+      contact,
+      location: bookingLocation
+    })
+  );
 
-const { data } = await axios.post(
-  "/api/bookings/create",
-  formData
-);
+  formData.append("payment", JSON.stringify(paymentData));
+
+  if (license) {
+    formData.append("license", license);
+  }
+
+  const { data } = await axios.post(
+    "/api/bookings/create",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    }
+  ); 
 
         if (data.success) {
           toast.success('Payment successful & booking confirmed');

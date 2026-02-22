@@ -20,6 +20,7 @@ const AddCar = () => {
     seating_capacity: '',
     location: '',
     description: '',
+    ownerPhone: '',
   });
 
   // 🔹 LOCATION STATES (NEW)
@@ -73,6 +74,7 @@ const AddCar = () => {
           seating_capacity: '',
           location: '',
           description: '',
+          ownerPhone: '',
         });
         setLocation('');
         setCustomLocation('');
@@ -272,6 +274,21 @@ const AddCar = () => {
             />
           )}
         </div>
+        {/* OWNER CONTACT */}
+          <div className="flex flex-col">
+            <label>Owner Contact Number</label>
+            <input
+              type="tel"
+              required
+              maxLength={10}
+              placeholder="Enter contact number"
+              className="px-3 py-2 mt-1 border rounded-md"
+              value={car.ownerPhone}
+              onChange={(e) =>
+                setCar({ ...car, ownerPhone: e.target.value })
+              }
+            />
+          </div>
 
         {/* DESCRIPTION */}
         <div className="flex flex-col">

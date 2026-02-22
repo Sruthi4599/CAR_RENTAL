@@ -11,23 +11,29 @@ const Hero = () => {
 
   const today = new Date().toISOString().split('T')[0]
 
-  // 🔥 If pickup date changes and return date is before pickup → reset return date
+  // ✅ Reset return date ONLY if it is strictly before pickup
   useEffect(() => {
-    if (pickupDate && returnDate && returnDate <= pickupDate) {
+    if (pickupDate && returnDate && returnDate < pickupDate) {
       setReturnDate('')
     }
-  }, [pickupDate])
+  }, [pickupDate, returnDate, setReturnDate])
 
   const handleSearch = (e) => {
     e.preventDefault()
+
+    if (!pickupLocation) {
+      toast.error("Please select location")
+      return
+    }
 
     if (!pickupDate || !returnDate) {
       toast.error("Please select both dates")
       return
     }
 
-    if (returnDate <= pickupDate) {
-      toast.error("Return date must be after pickup date")
+    // ✅ Allow same date
+    if (returnDate < pickupDate) {
+      toast.error("Return date cannot be before pickup date")
       return
     }
 
@@ -79,47 +85,45 @@ const Hero = () => {
               {pickupLocation ? pickupLocation : 'Please select location'}
             </p>
           </div>
-             {/* Pickup Date */}
-<div className='flex flex-col items-start gap-2'>
-  <label>Pick-up Date</label>
-  <input
-    type="date"
-    required
-    value={pickupDate}
-    onChange={(e) => {
-      const selectedDate = e.target.value
-      setPickupDate(selectedDate)
 
-      // If return date exists and is before pickup → reset it
-      if (returnDate && returnDate < selectedDate) {
-        setReturnDate(selectedDate)
-      }
-    }}
-    min={new Date().toISOString().split('T')[0]}
-    className='text-sm text-gray-500'
-  />
-</div>
+          {/* Pickup Date */}
+          <div className='flex flex-col items-start gap-2'>
+            <label>Pick-up Date</label>
+            <input
+              type="date"
+              required
+              value={pickupDate}
+              onChange={(e) => {
+                const selectedDate = e.target.value
+                setPickupDate(selectedDate)
+              }}
+              min={today}
+              className='text-sm text-gray-500'
+            />
+          </div>
 
-{/* Return Date */}
-<div className='flex flex-col items-start gap-2'>
-  <label>Return Date</label>
-  <input
-    type="date"
-    required
-    disabled={!pickupDate}
-    value={returnDate}
-    onChange={(e) => {
-      const selectedReturn = e.target.value
+          {/* Return Date */}
+          <div className='flex flex-col items-start gap-2'>
+            <label>Return Date</label>
+            <input
+              type="date"
+              required
+              disabled={!pickupDate}
+              value={returnDate}
+              onChange={(e) => {
+                const selectedReturn = e.target.value
 
-      // Block only if strictly before pickup
-      if (selectedReturn <= pickupDate) return
+                if (selectedReturn < pickupDate) {
+                  return
+                }
 
-      setReturnDate(selectedReturn)
-    }}
-    min={pickupDate || ''}
-    className='text-sm text-gray-500'
-  />
-</div>
+                setReturnDate(selectedReturn)
+              }}
+              min={pickupDate || ''}
+              className='text-sm text-gray-500'
+            />
+          </div>
+
         </div>
 
         <motion.button

@@ -3,7 +3,9 @@ import Booking from "../models/Booking.js";
 import Car from "../models/Car.js";
 import User from "../models/User.js";
 import fs from "fs";
+
 console.log("NEW ADD CAR CONTROLLER RUNNING");
+
 /* ================= CHANGE ROLE TO OWNER ================= */
 export const changeRoleToOwner = async (req, res) => {
   try {
@@ -38,6 +40,14 @@ export const addCar = async (req, res) => {
       });
     }
 
+    /* 🔥 CONTACT VALIDATION ADDED */
+    if (!car.ownerPhone || !/^[0-9]{10}$/.test(car.ownerPhone)) {
+      return res.json({
+        success: false,
+        message: "Valid 10-digit owner contact number is required"
+      });
+    }
+
     const response = await imageKit.upload({
       file: imageFile.buffer,
       fileName: imageFile.originalname,
@@ -54,7 +64,7 @@ export const addCar = async (req, res) => {
     });
 
     await Car.create({
-      ...car,
+      ...car,                 // 🔥 ownerPhone automatically included here
       owner: _id,
       image: optimizedImageURL,
       isAvailable: true
