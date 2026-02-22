@@ -13,6 +13,7 @@ const Dashboard = () => {
     totalBookings: 0,
     pendingBookings: 0,
     completedBookings: 0,
+     cancelledBookings: 0,
     recentBookings: [],
     monthlyRevenue: 0,
   });
@@ -22,6 +23,7 @@ const Dashboard = () => {
     { title: "Total Bookings", value: data.totalBookings, icon: assets.listIconColored },
     { title: "Pending", value: data.pendingBookings, icon: assets.cautionIconColored },
     { title: "Confirmed", value: data.completedBookings, icon: assets.listIconColored },
+    { title: "Cancelled", value: data.cancelledBookings, icon: assets.cautionIconColored },
   ];
 
   const fetchDashboardData = async () => {
@@ -52,7 +54,7 @@ const Dashboard = () => {
       />
 
       {/* DASHBOARD CARDS */}
-      <div className='grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 my-8 max-w-3xl'>
+      <div className='grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 my-8'>
         {dashboardCards.map((card, index) => (
           <div
             key={index}

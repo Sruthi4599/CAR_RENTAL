@@ -156,6 +156,11 @@ export const getDashboardData = async (req, res) => {
       status: "confirmed"
     });
 
+    const cancelledBookings = await Booking.countDocuments({
+  owner: ownerId,
+  status: "cancelled"
+});
+
     const recentBookings = await Booking.find({ owner: ownerId })
       .sort({ createdAt: -1 })
       .limit(5)
@@ -185,6 +190,7 @@ export const getDashboardData = async (req, res) => {
         totalBookings,
         pendingBookings,
         completedBookings,
+        cancelledBookings,
         recentBookings,
         monthlyRevenue
       }

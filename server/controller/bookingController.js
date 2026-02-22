@@ -123,7 +123,7 @@ const licenseDocument = result.url;
       customerDetails,   // ✅ NEW
       licenseDocument,
       status: "pending",
-      paymentStatus: "pending"
+      paymentStatus: "paid"
     });
 
 
@@ -174,7 +174,7 @@ export const getUserBookings = async (req, res) => {
 /* ===================== OWNER BOOKINGS ===================== */
 export const getOwnerBookings = async (req, res) => {
   const bookings = await Booking.find({ owner: req.user._id })
-    .populate("car user");
+    .populate("car user").sort({ createdAt: -1 });
 
   res.json({ success: true, bookings });
 };
@@ -396,11 +396,38 @@ doc.text(
 
 /* ===================== STATUS ===================== */
 export const changeBookingStatus = async (req, res) => {
-  const { bookingId, status } = req.body;
-  const booking = await Booking.findById(bookingId);
-  booking.status = status;
-  await booking.save();
-  res.json({ success: true });
+  try {
+    const { bookingId, status } = req.body;
+
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+      return res.status(404).json({
+        success:false,
+        message:"Booking not found"
+      });
+    }
+
+    booking.status = status;
+
+    // ✅ AUTO PAYMENT UPDATE
+    if (status === "confirmed") {
+      booking.paymentStatus = "paid";
+    }
+
+    await booking.save();
+
+    res.json({
+      success:true,
+      message:`Booking ${status}`
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success:false,
+      message:error.message
+    });
+  }
 };
 
 /* ===================== AVAILABILITY ===================== */
