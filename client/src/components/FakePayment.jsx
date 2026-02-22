@@ -10,7 +10,7 @@ const FakePayment = ({ amount, userId, carId, onSuccess }) => {
 
     try {
       const res = await axios.post(
-        "https://car-rental-iybv.onrender.com/api/payment/fake-payment",
+        "/api/payment/fake-payment",
         { amount, userId, carId }
       );
 

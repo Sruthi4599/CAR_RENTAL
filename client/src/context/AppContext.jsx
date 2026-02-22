@@ -3,7 +3,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
-axios.defaults.baseURL = "https://car-rental-iybv.onrender.com";
+axios.defaults.baseURL = "http://localhost:5000";
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {

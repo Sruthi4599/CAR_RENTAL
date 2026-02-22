@@ -18,7 +18,7 @@ await connectDB();
 
 // ✅ SIMPLE CORS (TEMPORARY, SAFE FOR DEBUGGING)
 app.use(cors({
-  origin: "https://onlinecarrental.vercel.app",
+  origin: ["https://onlinecarrental.vercel.app","http://localhost:5173"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
@@ -40,7 +40,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/payment", paymentRoutes);
 
 // Server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
