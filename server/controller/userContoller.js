@@ -106,3 +106,67 @@ export const getCarById = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+export const updateProfileImage = async (req, res) => {
+  try {
+
+    const userId = req.user._id;
+
+    if (!req.file) {
+      return res.json({
+        success: false,
+        message: "No image uploaded"
+      });
+    }
+
+    // Convert image → base64
+    const image =
+      `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { image },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      user: updatedUser
+    });
+
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+export const updateProfile = async (req, res) => {
+  try {
+
+    const { name } = req.body;
+
+    if (!name) {
+      return res.json({
+        success:false,
+        message:"Name is required"
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { name },
+      { new:true }
+    );
+
+    res.json({
+      success: true,
+      user: updatedUser
+    });
+
+  } catch (error) {
+    res.json({
+      success:false,
+      message:error.message
+    });
+  }
+};

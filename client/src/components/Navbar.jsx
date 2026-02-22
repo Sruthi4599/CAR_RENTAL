@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState ,  useEffect} from 'react'
 import { assets, menuLinks } from '../assets/assets'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAppContext } from '../context/AppContext'
@@ -7,18 +7,27 @@ import { motion } from 'motion/react'
 
 const Navbar = () => {
   const {
-    setShowLogin,
-    logout,
-    isOwner,
-    axios,
-    setIsOwner,
-    token
-  } = useAppContext()
+  setShowLogin,
+  logout,
+  isOwner,
+  axios,
+  setIsOwner,
+  token,
+  user
+} = useAppContext()
 
   const location = useLocation()
   const [open, setOpen] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
   const navigate = useNavigate()
+  useEffect(() => {
+  const closeProfile = () => setShowProfile(false)
 
+  window.addEventListener("click", closeProfile)
+
+  return () =>
+    window.removeEventListener("click", closeProfile)
+}, [])
   const changeRole = async () => {
     try {
       if (!token) {
@@ -90,15 +99,75 @@ const Navbar = () => {
           </button>
 
           {/* 🔥 FIXED LOGIN / LOGOUT LOGIC */}
-          <button
-            onClick={() => {
-              token ? logout() : setShowLogin(true)
-            }}
-            className='cursor-pointer px-8 py-2 bg-primary
-            hover:bg-primary-dull transition-all text-white rounded-lg'
-          >
-            {token ? 'Logout' : 'Login'}
-          </button>
+          {token ? (
+  <div className="relative">
+
+    {/* PROFILE IMAGE */}
+    <img
+      src={user?.image || assets.default_profile}
+      alt="profile"
+      onClick={(e) => {
+        e.stopPropagation()
+        setShowProfile(!showProfile)
+      }}
+      className="w-10 h-10 rounded-full object-cover cursor-pointer"
+    />
+
+    {/* DROPDOWN */}
+    {showProfile && (
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="absolute right-0 mt-3 w-56 bg-white shadow-lg
+        rounded-lg p-4 text-sm z-50"
+      >
+        <p className="font-semibold">{user?.name}</p>
+        <p className="text-gray-500 text-xs">
+          {user?.email}
+        </p>
+
+        <hr className="my-2" />
+        <button
+  onClick={() => navigate('/profile')}
+  className="block w-full text-left hover:text-primary"
+>
+  Profile
+</button>
+      
+        <button
+          onClick={() => navigate('/my-bookings')}
+          className="block w-full text-left hover:text-primary"
+        >
+          My Bookings
+        </button>
+
+        <button
+          onClick={() => isOwner
+            ? navigate('/owner')
+            : changeRole()
+          }
+          className="block w-full text-left mt-2 hover:text-primary"
+        >
+          {isOwner ? "Owner Dashboard" : "Become Owner"}
+        </button>
+
+        <button
+          onClick={logout}
+          className="block w-full text-left text-red-500 mt-2"
+        >
+          Logout
+        </button>
+      </div>
+    )}
+  </div>
+) : (
+  <button
+    onClick={() => setShowLogin(true)}
+    className="cursor-pointer px-8 py-2 bg-primary
+    hover:bg-primary-dull text-white rounded-lg"
+  >
+    Login
+  </button>
+)}
         </div>
       </div>
 
@@ -109,6 +178,7 @@ const Navbar = () => {
       >
         <img src={open ? assets.close_icon : assets.menu_icon} alt="menu" />
       </button>
+      
     </motion.div>
   )
 }
