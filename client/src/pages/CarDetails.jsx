@@ -387,7 +387,7 @@ const [showPayment, setShowPayment] = useState(false);
         });
 
         if (data.success) {
-          toast.success('Payment successful & booking confirmed ✅');
+          toast.success('Payment successful & booking confirmed');
           navigate('/my-bookings');
         } else {
           toast.error(data.message || 'Booking failed');

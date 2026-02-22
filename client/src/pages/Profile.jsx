@@ -27,7 +27,7 @@ const Profile = () => {
       );
 
       if (data.success) {
-        toast.success("Profile Image Updated ✅");
+        toast.success("Profile Image Updated");
         fetchUser();
       }
 
@@ -46,7 +46,7 @@ const Profile = () => {
       );
 
       if (data.success) {
-        toast.success("Name Updated ✅");
+        toast.success("Name Updated");
         fetchUser();
       }
 
