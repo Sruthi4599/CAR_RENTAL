@@ -19,7 +19,7 @@ await connectDB();
 
 // ✅ SIMPLE CORS (TEMPORARY, SAFE FOR DEBUGGING)
 app.use(cors({
-  origin: ["https://onlinecarrental.vercel.app","http://localhost:5173"],
+  origin: ["https://onlinecarrental.vercel.app","http://localhost:5173","https://car-rental-6cid.vercel.app/"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
