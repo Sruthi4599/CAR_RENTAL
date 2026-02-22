@@ -56,8 +56,11 @@ const bookingSchema = new mongoose.Schema(
         required: true,
         trim: true
       }
-
     },
+    licenseDocument: {
+  type: String,
+  required: true
+},
 
     price: {
       type: Number,

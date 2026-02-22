@@ -43,6 +43,8 @@ const CarDetails = () => {
   const [age, setAge] = useState('')
   const [gender, setGender] = useState('')
   const [bookingLocation, setBookingLocation] = useState('');
+  const [license, setLicense] = useState(null);
+  const [isConfirmed, setIsConfirmed] = useState(false);
 const isAgeInvalid = age !== '' && Number(age) < 18;
   // ✅ NEW STATE for dynamic price
   const [estimatedTotal, setEstimatedTotal] = useState(null)
@@ -115,7 +117,14 @@ const [showPayment, setShowPayment] = useState(false);
     toast.error("Please fill all details");
     return false;
   }
-
+  if (!license) {
+    toast.error("Upload driving license");
+    return false;
+  }
+  if (!isConfirmed) {
+    toast.error("Please confirm declaration");
+    return false;
+  }
   if (Number(age) < 18) {
     toast.error("You must be at least 18 years old to book a car.");
     return false;
@@ -325,9 +334,51 @@ const [showPayment, setShowPayment] = useState(false);
                   }}
                 />
               </div>
+              
             )}
+            
           </div>
+            
+            {/* ✅ LICENSE UPLOAD */}
+<div>
+  <label>Upload Driving License</label>
 
+  <label className="w-full h-24 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:border-primary">
+
+    <p className="text-gray-500 text-sm">
+      {license
+        ? license.name
+        : "Upload License (PDF/Image)"}
+    </p>
+
+    <input
+      type="file"
+      accept=".pdf,image/*"
+      className="hidden"
+      onChange={(e)=>setLicense(e.target.files[0])}
+    />
+  </label>
+</div>
+{/* USER DECLARATION */}
+<div className="flex items-start gap-2 text-sm">
+
+  <input
+    type="checkbox"
+    checked={isConfirmed}
+    onChange={(e) => setIsConfirmed(e.target.checked)}
+    className="mt-1 cursor-pointer"
+  />
+
+  <p className="text-gray-600">
+    I confirm that the above provided details are correct and belong to me.
+  </p>
+
+</div>
+
+<p className="text-xs text-red-500">
+   Note: Please carry your original Driving License while collecting
+  the car from the owner for verification.
+</p>
           {/* PRICE */}
           {estimatedTotal && (
             <div className='text-sm'>
@@ -372,19 +423,28 @@ const [showPayment, setShowPayment] = useState(false);
     return;
   }
       try {
-        const { data } = await axios.post('/api/bookings/create', {
-          carId: car._id,
-          pickupDate,
-          returnDate,
-          price: estimatedTotal,
-          customerDetails: {
-            fullName,
-            age,
-            gender,
-            location: bookingLocation
-          },
-          payment: paymentData
-        });
+        const formData = new FormData();
+
+formData.append("carId", car._id);
+formData.append("pickupDate", pickupDate);
+formData.append("returnDate", returnDate);
+
+formData.append(
+  "customerDetails",
+  JSON.stringify({
+    fullName,
+    age,
+    gender,
+    location: bookingLocation
+  })
+);
+
+formData.append("license", license);
+
+const { data } = await axios.post(
+  "/api/bookings/create",
+  formData
+);
 
         if (data.success) {
           toast.success('Payment successful & booking confirmed');

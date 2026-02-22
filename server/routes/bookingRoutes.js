@@ -11,7 +11,7 @@ import {
   checkAvailabilityOfCar,
   getUnavailableDates
 } from "../controller/bookingController.js";
-
+import upload from "../middleware/multer.js";
 import { protect } from "../middleware/auth.js";
 
 const bookingRouter = express.Router();
@@ -22,7 +22,12 @@ bookingRouter.post("/check-availability", checkAvailabilityOfCar);
 bookingRouter.get("/unavailable-dates/:carId", getUnavailableDates);
 
 /* ===================== CREATE BOOKING ===================== */
-bookingRouter.post("/create", protect, createBooking);
+bookingRouter.post(
+  "/create",
+  protect,
+  upload.single("license"),
+  createBooking
+);
 
 /* ===================== LIST BOOKINGS ===================== */
 bookingRouter.post("/user", protect, getUserBookings);

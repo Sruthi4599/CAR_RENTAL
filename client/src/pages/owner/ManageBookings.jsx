@@ -124,6 +124,7 @@ const ManageBookings = () => {
               <th className='p-3 font-medium max-md:hidden'>Date Range</th>
               <th className='p-3 font-medium'>Total</th>
               <th className='p-3 font-medium max-md:hidden'>Payment</th>
+              <th className='p-3 font-medium'>License</th> 
               <th className='p-3 font-medium'>Actions</th>
             </tr>
           </thead>
@@ -131,13 +132,13 @@ const ManageBookings = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className='p-6 text-center'>
+                <td colSpan={7} className='p-6 text-center'>
                   Loading...
                 </td>
               </tr>
             ) : bookings.length === 0 ? (
               <tr>
-                <td colSpan={6} className='p-6 text-center'>
+                <td colSpan={7} className='p-6 text-center'>
                   No bookings found.
                 </td>
               </tr>
@@ -176,13 +177,28 @@ const ManageBookings = () => {
                       {currency}
                       {booking.price}
                     </td>
-
                     {/* PAYMENT STATUS */}
                     <td className='p-3 max-md:hidden'>
                       <span className='bg-gray-100 px-3 py-1 rounded-full text-xs'>
                         {booking.paymentStatus}
                       </span>
                     </td>
+                    {/* LICENSE VIEW */}
+<td className='p-3'>
+  {booking.licenseDocument ? (
+    <button
+      onClick={() =>
+        window.open(booking.licenseDocument, "_blank")
+      }
+      className='bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600'
+    >
+      View
+    </button>
+  ) : (
+    <span className='text-gray-400 text-xs'>No File</span>
+  )}
+</td>
+                    
 
                     {/* ACTIONS */}
                     <td className='p-3'>

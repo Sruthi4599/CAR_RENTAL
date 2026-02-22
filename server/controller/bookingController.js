@@ -4,7 +4,7 @@ import { calculateDynamicPrice } from "../utils/pricingEngine.js";
 import checkAvailability from "../utils/checkAvailability.js";
 import PDFDocument from "pdfkit";
 import { getRefundPercentage } from "../utils/refundCalculator.js";
-
+import imagekit from "../configs/imageKit.js";
 /* ===================== HELPER ===================== */
 const ensureMinimumOneDay = (pickupDate, returnDate) => {
   let days =
@@ -18,7 +18,31 @@ const ensureMinimumOneDay = (pickupDate, returnDate) => {
 /* ===================== CREATE BOOKING (FIXED) ===================== */
 export const createBooking = async (req, res) => {
   try {
-    const { carId, pickupDate, returnDate, customerDetails } = req.body;
+    const {
+  carId,
+  pickupDate,
+  returnDate
+} = req.body;
+
+let customerDetails;
+
+try {
+  customerDetails =
+    typeof req.body.customerDetails === "string"
+      ? JSON.parse(req.body.customerDetails)
+      : req.body.customerDetails;
+} catch {
+  return res.status(400).json({
+    success:false,
+    message:"Invalid customer details"
+  });
+}
+    if (!req.file) {
+  return res.status(400).json({
+    success:false,
+    message:"Driving license required"
+  });
+}
     if (
       !customerDetails ||
       !customerDetails.fullName ||
@@ -83,7 +107,12 @@ export const createBooking = async (req, res) => {
       pickup,
       new Date(pickup.getTime() + days * 24 * 60 * 60 * 1000)
     );
+    const result = await imagekit.upload({
+  file: req.file.buffer,
+  fileName: `license_${Date.now()}`,
+});
 
+const licenseDocument = result.url;
     const booking = await Booking.create({
       user: req.user._id,
       owner: car.owner,
@@ -92,6 +121,7 @@ export const createBooking = async (req, res) => {
       returnDate: ret,
       price: pricing.totalPrice,
       customerDetails,   // ✅ NEW
+      licenseDocument,
       status: "pending",
       paymentStatus: "pending"
     });
