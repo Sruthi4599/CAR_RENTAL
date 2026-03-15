@@ -94,7 +94,7 @@ const MyBookings = () => {
       />
 
       <div>
-        {bookings.map((booking, index) => (
+        {bookings?.map((booking, index) => (
           <div
             key={booking._id}
             className='grid grid-cols-1 md:grid-cols-4 gap-6 p-6 border border-borderColor rounded-lg mt-5 first:mt-12'
@@ -103,17 +103,21 @@ const MyBookings = () => {
             <div className='md:col-span-1'>
               <div className='rounded-md overflow-hidden mb-3'>
                 <img
-                  src={booking.car.image}
-                  alt=''
-                  className='w-full h-auto aspect-video object-cover'
-                />
+   src={booking?.car?.image || "/no-car.png"}
+   alt="car"
+/>
+
+<h3>
+   {booking?.car?.brand || "Car no longer available"}
+</h3>
               </div>
               <p className='text-lg font-medium mt-2'>
-                {booking.car.brand} {booking.car.model}
-              </p>
-              <p className='text-gray-500'>
-                {booking.car.year} • {booking.car.category} • {booking.car.location}
-              </p>
+  {booking?.car?.brand || "Car removed"} {booking?.car?.model || ""}
+</p>
+
+<p className='text-gray-500'>
+  {booking?.car?.year || "N/A"} • {booking?.car?.category || "N/A"} • {booking?.car?.location || "Location unavailable"}
+</p>
             </div>
 
             {/* Booking details */}
@@ -164,7 +168,7 @@ const MyBookings = () => {
                 />
                 <div>
                   <p className='text-gray-500'>Pick-up Location</p>
-                  <p>{booking.car.location}</p>
+                  <p>{booking?.car?.location || "Location unavailable"}</p>
                 </div>
               </div>
 

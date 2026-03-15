@@ -169,19 +169,40 @@ export const previewBookingPrice = async (req, res) => {
 
 /* ===================== USER BOOKINGS ===================== */
 export const getUserBookings = async (req, res) => {
-  const bookings = await Booking.find({ user: req.user._id })
-    .populate("car")
-    .sort({ createdAt: -1 });
+  let bookings = await Booking.find({ user: req.user._id })
+  .populate("car")
+  .sort({ createdAt: -1 });
 
-  res.json({ success: true, bookings });
+bookings = bookings.map(b => {
+  if (!b.car) {
+    return {
+      ...b._doc,
+      carRemoved: true
+    };
+  }
+  return b;
+});
+
+res.json({ success: true, bookings });
 };
 
 /* ===================== OWNER BOOKINGS ===================== */
 export const getOwnerBookings = async (req, res) => {
-  const bookings = await Booking.find({ owner: req.user._id })
-    .populate("car user").sort({ createdAt: -1 });
+  let bookings = await Booking.find({ owner: req.user._id })
+  .populate("car user")
+  .sort({ createdAt: -1 });
 
-  res.json({ success: true, bookings });
+bookings = bookings.map(b => {
+  if (!b.car) {
+    return {
+      ...b._doc,
+      carRemoved: true
+    };
+  }
+  return b;
+});
+
+res.json({ success: true, bookings });
 };
 
 /* ===================== CANCEL BOOKING ===================== */
@@ -346,12 +367,14 @@ doc.text(
 
 
     /* ===== CAR DETAILS ===== */
-    doc.text(
-      `Car: ${booking.car.brand} ${booking.car.model} (${booking.car.year})`
-    );
-    doc.text(`Fuel Type: ${booking.car.fuel_type}`);
-    doc.text(`Transmission: ${booking.car.transmission}`);
-    doc.text(`Location: ${booking.car.location}`);
+    const carBrand = booking.car?.brand || "Car removed";
+const carModel = booking.car?.model || "";
+const carYear = booking.car?.year || "";
+
+doc.text(`Car: ${carBrand} ${carModel} ${carYear}`);
+doc.text(`Fuel Type: ${booking.car?.fuel_type || "N/A"}`);
+doc.text(`Transmission: ${booking.car?.transmission || "N/A"}`);
+doc.text(`Location: ${booking.car?.location || "N/A"}`);
     doc.moveDown();
 
     /* ===== DATE DETAILS ===== */

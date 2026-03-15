@@ -77,14 +77,23 @@ const Dashboard = () => {
           <h1 className='text-lg font-medium'>Recent Bookings</h1>
           <p className='text-gray-500'>Latest customer bookings</p>
 
-          {data.recentBookings.map((booking, index) => (
-            <div key={index} className='mt-4 flex items-center justify-between'>
-              <div>
-                <p>{booking.car.brand} {booking.car.model}</p>
-                <p className='text-sm text-gray-500'>
-                  {booking.createdAt.split('T')[0]}
-                </p>
-              </div>
+          {data?.recentBookings?.map((booking, index) => (
+  <div key={index} className='mt-4 flex items-center justify-between'>
+    <div>
+      <p>
+        {booking?.car?.brand || "Car removed"} {booking?.car?.model || ""}
+      </p>
+
+      {!booking?.car && (
+        <span className="text-red-500 text-xs">
+          Car deleted
+        </span>
+      )}
+
+      <p className='text-sm text-gray-500'>
+        {booking.createdAt.split('T')[0]}
+      </p>
+    </div>
               <div className='flex items-center gap-2'>
                 <p className='text-sm'>{currency}{booking.price}</p>
                 <p className='px-3 py-0.5 border rounded-full text-sm'>
